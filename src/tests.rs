@@ -60,3 +60,10 @@ async fn api_root_is_served() {
     let text = response.text().await.unwrap();
     assert_eq!(text, "The api is working.");
 }
+
+#[tokio::test]
+async fn invalid_path_is_handled() {
+    let ctx = setup().await;
+    let response = ctx.get("/not_found").await;
+    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+}
