@@ -43,11 +43,20 @@ jobs:
       - name: Setup Cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Run Test
+        run: cargo tarpaulin --out Xml --verbose --locked --target ${{ matrix.target }}
+
+      - name: Upload Coverage
+        if: matrix.runner == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./cobertura.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
+
       - name: Build Binary
         run: cargo build --verbose --locked --release --target ${{ matrix.target }}
-
-      - name: Test
-        run: cargo test --verbose --locked --release --target ${{ matrix.target }}
 
       - name: Rename Executable
         run: cp ./target/${{ matrix.target }}/release/${{ matrix.build_name }} tripatlas-${{ matrix.name }}
