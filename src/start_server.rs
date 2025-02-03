@@ -2,7 +2,8 @@ use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, Responder};
 use std::net::TcpListener;
 
-static FRONTEND_FILES: include_dir::Dir = include_dir::include_dir!("./frontend/dist");
+static FRONTEND_FILES: include_dir::Dir =
+    include_dir::include_dir!("$CARGO_MANIFEST_DIR/frontend/dist");
 
 #[actix_web::get("/{filename:.*}")]
 async fn route_frontend(req: actix_web::HttpRequest) -> impl Responder {

@@ -7,9 +7,10 @@ fn main() {
 }
 
 fn rebuild_frontend_if_necessary() {
-    let frontend_dir = Path::new("./frontend");
+    let project_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let frontend_dir = project_dir.join("frontend");
 
-    let frontend_change_time = find_latest_modification_time(frontend_dir, &|e| {
+    let frontend_change_time = find_latest_modification_time(&frontend_dir, &|e| {
         let path = e.path();
         !(path.ends_with("dist") || path.ends_with("node_modules"))
     });
@@ -24,8 +25,11 @@ fn rebuild_frontend_if_necessary() {
         }
     }
 
-    cmd!("npm", "install").dir(frontend_dir).run().unwrap();
-    cmd!("npm", "run", "build").dir(frontend_dir).run().unwrap();
+    cmd!("npm", "install").dir(&frontend_dir).run().unwrap();
+    cmd!("npm", "run", "build")
+        .dir(&frontend_dir)
+        .run()
+        .unwrap();
 }
 
 fn find_latest_modification_time(
