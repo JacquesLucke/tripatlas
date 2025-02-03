@@ -65,7 +65,7 @@ jobs:
           verbose: true
 
       - name: Test without Coverage
-        if: !matrix.generate_coverage
+        if: matrix.generate_coverage == false
         run: cargo test --verbose --locked --target ${{ matrix.target }}
 
       - name: Build Binary
