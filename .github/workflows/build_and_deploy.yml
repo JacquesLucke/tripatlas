@@ -43,6 +43,9 @@ jobs:
       - name: Setup Cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Install Tarpaulin
+        run: cargo install cargo-tarpaulin
+
       - name: Run Test
         run: cargo tarpaulin --out Xml --verbose --locked --target ${{ matrix.target }}
 
