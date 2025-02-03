@@ -11,6 +11,7 @@ tokio = { version = "1.43.0", features = ["full"] }
 anyhow = "1.0.95"
 include_dir = "0.7.4"
 mime_guess = "2.0.5"
+actix-cors = "0.7.0"
 
 [build-dependencies]
 duct = "0.13.7"

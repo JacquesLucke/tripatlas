@@ -1,5 +1,4 @@
-use actix_web::http::header::{CacheControl, CacheDirective};
-use actix_web::middleware::DefaultHeaders;
+use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, Responder};
 use std::net::TcpListener;
 
@@ -21,10 +20,16 @@ async fn route_frontend(req: actix_web::HttpRequest) -> impl Responder {
     }
 }
 
+#[actix_web::get("/api")]
+async fn route_api_root() -> impl Responder {
+    HttpResponse::Ok().body("The api is working.")
+}
+
 pub async fn start_server(listener: TcpListener) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
-            .wrap(DefaultHeaders::new().add(CacheControl(vec![CacheDirective::NoCache])))
+            .wrap(Cors::permissive())
+            .service(route_api_root)
             .service(route_frontend)
     })
     .workers(1)
