@@ -7,3 +7,5 @@ edition = "2021"
 
 [build-dependencies]
 duct = "0.13.7"
+walkdir = "2.5.0"
+anyhow = "1.0.95"
