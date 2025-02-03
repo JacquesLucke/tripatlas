@@ -25,8 +25,15 @@ fn rebuild_frontend_if_necessary() {
         }
     }
 
-    cmd!("npm", "install").dir(&frontend_dir).run().unwrap();
-    cmd!("npm", "run", "build")
+    // Determine the npm command based on the OS.
+    let npm_cmd = if cfg!(target_os = "windows") {
+        "npm.cmd"
+    } else {
+        "npm"
+    };
+
+    cmd!(npm_cmd, "install").dir(&frontend_dir).run().unwrap();
+    cmd!(npm_cmd, "run", "build")
         .dir(&frontend_dir)
         .run()
         .unwrap();
