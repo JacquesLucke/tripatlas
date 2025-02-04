@@ -26,16 +26,20 @@ async fn route_api_root() -> impl Responder {
     HttpResponse::Ok().body("The api is working.")
 }
 
-pub async fn start_server(listener: TcpListener) -> std::io::Result<()> {
-    HttpServer::new(move || {
+pub async fn start_server(
+    listener: TcpListener,
+    on_start: Option<Box<dyn FnOnce()>>,
+) -> std::io::Result<()> {
+    let server = HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
             .service(route_api_root)
             .service(route_frontend)
     })
     .workers(1)
-    .listen(listener)
-    .unwrap()
-    .run()
-    .await
+    .listen(listener)?;
+    if let Some(on_start) = on_start {
+        on_start();
+    }
+    server.run().await
 }

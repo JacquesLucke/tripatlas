@@ -32,6 +32,6 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
         .spawn()?;
 
     let listener = std::net::TcpListener::bind((params.api_host.as_str(), params.api_port))?;
-    start_server::start_server(listener).await?;
+    start_server::start_server(listener, None).await?;
     Ok(())
 }

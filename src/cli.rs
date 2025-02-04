@@ -8,7 +8,7 @@ use crate::cli_serve_dev;
 #[command(name = "trip-atlas")]
 struct CLI {
     #[command(subcommand)]
-    command: CLICommand,
+    command: Option<CLICommand>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -18,19 +18,34 @@ enum CLICommand {
 }
 
 pub async fn handle_command_line_arguments() -> Result<()> {
-    let frontend_host = "0.0.0.0";
+    let frontend_host = "localhost";
     let frontend_port = 7654;
 
     let cli = CLI::parse();
     match cli.command {
-        CLICommand::Serve {} => {
-            cli_serve::serve(&cli_serve::ServeParams {
+        None => {
+            cli_serve::serve(cli_serve::ServeParams {
                 host: frontend_host.to_string(),
                 port: frontend_port,
+                on_start: Some(Box::new(move || {
+                    if !webbrowser::open(&format!("http://{}:{}", frontend_host, frontend_port))
+                        .is_ok()
+                    {
+                        println!("Failed to open browser");
+                    }
+                })),
             })
             .await?
         }
-        CLICommand::ServeDev {} => {
+        Some(CLICommand::Serve {}) => {
+            cli_serve::serve(cli_serve::ServeParams {
+                host: frontend_host.to_string(),
+                port: frontend_port,
+                on_start: None,
+            })
+            .await?
+        }
+        Some(CLICommand::ServeDev {}) => {
             cli_serve_dev::serve_dev(&cli_serve_dev::ServeDevParams {
                 frontend_host: frontend_host.to_string(),
                 frontend_port: frontend_port,
