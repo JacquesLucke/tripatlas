@@ -28,7 +28,7 @@ async fn route_api_root() -> impl Responder {
 
 pub async fn start_server(
     listener: TcpListener,
-    on_start: Option<Box<dyn FnOnce()>>,
+    on_start: Option<Box<dyn FnOnce() + Send>>,
 ) -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()

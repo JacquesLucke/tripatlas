@@ -5,7 +5,7 @@ use crate::start_server;
 pub struct ServeParams {
     pub host: String,
     pub port: u16,
-    pub on_start: Option<Box<dyn FnOnce()>>,
+    pub on_start: Option<Box<dyn FnOnce() + Send>>,
 }
 
 pub async fn serve(params: ServeParams) -> Result<()> {

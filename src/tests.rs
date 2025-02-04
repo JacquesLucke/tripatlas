@@ -18,7 +18,7 @@ async fn setup() -> TestContext {
     let url = format!("http://127.0.0.1:{}", port);
 
     let server = tokio::spawn(async move {
-        crate::start_server::start_server(listener)
+        crate::start_server::start_server(listener, None)
             .await
             .expect("Failed to start server");
     });
