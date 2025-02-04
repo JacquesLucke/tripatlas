@@ -14,25 +14,29 @@ jobs:
             target: x86_64-unknown-linux-gnu
             generate_coverage: true
             build_name: "tripatlas"
-            final_name: "tripatlas-linux-x64"
+            final_executable_name: "tripatlas-linux-x64"
+            zipped_name: "tripatlas-linux-x64.zip"
           - name: win-x64
             runner: windows-latest
             target: x86_64-pc-windows-msvc
             generate_coverage: false
             build_name: "tripatlas.exe"
-            final_name: "tripatlas-windows-x64.exe"
+            final_executable_name: "tripatlas-windows-x64.exe"
+            zipped_name: "tripatlas-windows-x64.zip"
           - name: macos-x64
             runner: macos-latest
             target: x86_64-apple-darwin
             generate_coverage: false
             build_name: "tripatlas"
-            final_name: "tripatlas-macos-x64"
+            final_executable_name: "tripatlas-macos-x64"
+            zipped_name: "tripatlas-macos-x64.zip"
           - name: macos-arm64
             runner: macos-latest
             target: aarch64-apple-darwin
             generate_coverage: false
             build_name: "tripatlas"
-            final_name: "tripatlas-macos-arm64"
+            final_executable_name: "tripatlas-macos-arm64"
+            zipped_name: "tripatlas-macos-arm64.zip"
 
     steps:
       - name: Checkout
@@ -76,12 +80,20 @@ jobs:
         run: cargo build --verbose --locked --release --target ${{ matrix.target }}
 
       - name: Rename Executable
-        run: cp ./target/${{ matrix.target }}/release/${{ matrix.build_name }} ${{ matrix.final_name }}
+        run: cp ./target/${{ matrix.target }}/release/${{ matrix.build_name }} ${{ matrix.final_executable_name }}
+
+      - name: Zip Executable on Linux and MacOS
+        if: matrix.runner != 'windows-latest'
+        run: zip ${{ matrix.zipped_name }} ${{ matrix.final_executable_name }}
+
+      - name: Zip Executable on Windows
+        if: matrix.runner == 'windows-latest'
+        run: Compress-Archive -Path ${{ matrix.final_executable_name }} -DestinationPath ${{ matrix.zipped_name }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.final_name }}
-          path: ${{ matrix.final_name }}
+          name: ${{ matrix.zipped_name }}
+          path: ${{ matrix.zipped_name }}
 
   deploy:
     name: Deploy Latest
