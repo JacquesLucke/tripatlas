@@ -9,6 +9,7 @@ pub struct ServeParams {
 }
 
 pub async fn serve(params: ServeParams) -> Result<()> {
+    // TODO: Check if port is already in use and hande that case.
     let listener = std::net::TcpListener::bind((params.host.as_str(), params.port))?;
     let port = listener.local_addr()?.port();
     println!("Server running on http://{}:{}", params.host, port);
