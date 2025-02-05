@@ -286,15 +286,15 @@ mod tests {
             "}
             .as_bytes();
             let csv = ParsedCsv::from_buffer(buffer);
-            assert_eq!(csv.rows_len(), 2);
-            assert_eq!(csv.row(0).fields_len(), 3);
-            assert_eq!(csv.row(0).field(buffer, 0), b"123");
-            assert_eq!(csv.row(0).field(buffer, 1), b"456");
-            assert_eq!(csv.row(0).field(buffer, 2), b"789");
-            assert_eq!(csv.row(1).fields_len(), 3);
-            assert_eq!(csv.row(1).field(buffer, 0), b"1");
-            assert_eq!(csv.row(1).field(buffer, 1), b"2");
-            assert_eq!(csv.row(1).field(buffer, 2), b"3");
+            assert_eq!(csv.raw_rows_len(), 2);
+            assert_eq!(csv.raw_row(0).fields_len(), 3);
+            assert_eq!(csv.raw_row(0).field(buffer, 0), b"123");
+            assert_eq!(csv.raw_row(0).field(buffer, 1), b"456");
+            assert_eq!(csv.raw_row(0).field(buffer, 2), b"789");
+            assert_eq!(csv.raw_row(1).fields_len(), 3);
+            assert_eq!(csv.raw_row(1).field(buffer, 0), b"1");
+            assert_eq!(csv.raw_row(1).field(buffer, 1), b"2");
+            assert_eq!(csv.raw_row(1).field(buffer, 2), b"3");
         }
         {
             let buffer = indoc! {r#"
@@ -307,35 +307,38 @@ mod tests {
             "#}
             .as_bytes();
             let csv = ParsedCsv::from_buffer(buffer);
-            assert_eq!(csv.rows_len(), 6);
-            assert_eq!(csv.row(0).fields_len(), 6);
-            assert_eq!(csv.row(0).field(buffer, 0), b"stop_name");
-            assert_eq!(csv.row(0).field(buffer, 1), b"parent_station");
-            assert_eq!(csv.row(0).field(buffer, 2), b"stop_id");
-            assert_eq!(csv.row(0).field(buffer, 3), b"stop_lat");
-            assert_eq!(csv.row(0).field(buffer, 4), b"stop_lon");
-            assert_eq!(csv.row(0).field(buffer, 5), b"location_type");
-            assert_eq!(csv.row(1).fields_len(), 6);
-            assert_eq!(csv.row(1).field(buffer, 0), b"'s-Heerenberg Gouden Handen");
-            assert_eq!(csv.row(1).field(buffer, 1), b"");
-            assert_eq!(csv.row(1).field(buffer, 2), b"237383");
-            assert_eq!(csv.row(1).field(buffer, 3), b"51.87225");
-            assert_eq!(csv.row(1).field(buffer, 4), b"6.2473383");
-            assert_eq!(csv.row(1).field(buffer, 5), b"1");
-            assert_eq!(csv.row(2).fields_len(), 6);
-            assert_eq!(csv.row(2).field(buffer, 0), b"AB-Leider, Hafen");
-            assert_eq!(csv.row(2).field(buffer, 1), b"49745");
-            assert_eq!(csv.row(2).field(buffer, 2), b"35003");
-            assert_eq!(csv.row(2).field(buffer, 3), b"49.9727");
-            assert_eq!(csv.row(2).field(buffer, 4), b"9.107453");
-            assert_eq!(csv.row(2).field(buffer, 5), b"");
-            assert_eq!(csv.row(3).fields_len(), 0);
-            assert_eq!(csv.row(4).fields_len(), 2);
-            assert_eq!(csv.row(4).field(buffer, 0), b"");
-            assert_eq!(csv.row(4).field(buffer, 1), b"");
-            assert_eq!(csv.row(5).fields_len(), 2);
-            assert_eq!(csv.row(5).field(buffer, 0), b"1");
-            assert_eq!(csv.row(5).field(buffer, 1), b"2");
+            assert_eq!(csv.raw_rows_len(), 6);
+            assert_eq!(csv.raw_row(0).fields_len(), 6);
+            assert_eq!(csv.raw_row(0).field(buffer, 0), b"stop_name");
+            assert_eq!(csv.raw_row(0).field(buffer, 1), b"parent_station");
+            assert_eq!(csv.raw_row(0).field(buffer, 2), b"stop_id");
+            assert_eq!(csv.raw_row(0).field(buffer, 3), b"stop_lat");
+            assert_eq!(csv.raw_row(0).field(buffer, 4), b"stop_lon");
+            assert_eq!(csv.raw_row(0).field(buffer, 5), b"location_type");
+            assert_eq!(csv.raw_row(1).fields_len(), 6);
+            assert_eq!(
+                csv.raw_row(1).field(buffer, 0),
+                b"'s-Heerenberg Gouden Handen"
+            );
+            assert_eq!(csv.raw_row(1).field(buffer, 1), b"");
+            assert_eq!(csv.raw_row(1).field(buffer, 2), b"237383");
+            assert_eq!(csv.raw_row(1).field(buffer, 3), b"51.87225");
+            assert_eq!(csv.raw_row(1).field(buffer, 4), b"6.2473383");
+            assert_eq!(csv.raw_row(1).field(buffer, 5), b"1");
+            assert_eq!(csv.raw_row(2).fields_len(), 6);
+            assert_eq!(csv.raw_row(2).field(buffer, 0), b"AB-Leider, Hafen");
+            assert_eq!(csv.raw_row(2).field(buffer, 1), b"49745");
+            assert_eq!(csv.raw_row(2).field(buffer, 2), b"35003");
+            assert_eq!(csv.raw_row(2).field(buffer, 3), b"49.9727");
+            assert_eq!(csv.raw_row(2).field(buffer, 4), b"9.107453");
+            assert_eq!(csv.raw_row(2).field(buffer, 5), b"");
+            assert_eq!(csv.raw_row(3).fields_len(), 0);
+            assert_eq!(csv.raw_row(4).fields_len(), 2);
+            assert_eq!(csv.raw_row(4).field(buffer, 0), b"");
+            assert_eq!(csv.raw_row(4).field(buffer, 1), b"");
+            assert_eq!(csv.raw_row(5).fields_len(), 2);
+            assert_eq!(csv.raw_row(5).field(buffer, 0), b"1");
+            assert_eq!(csv.raw_row(5).field(buffer, 1), b"2");
         }
     }
 }
