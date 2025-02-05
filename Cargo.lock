@@ -2150,6 +2150,8 @@ dependencies = [
  "mime_guess",
  "parking_lot",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "walkdir",
  "webbrowser",

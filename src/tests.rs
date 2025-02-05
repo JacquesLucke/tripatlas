@@ -12,13 +12,25 @@ impl Drop for TestContext {
     }
 }
 
-async fn setup() -> TestContext {
+struct SetupParams {
+    allow_shutdown_from_frontend: bool,
+}
+
+impl Default for SetupParams {
+    fn default() -> Self {
+        Self {
+            allow_shutdown_from_frontend: false,
+        }
+    }
+}
+
+async fn setup_with_params(params: SetupParams) -> TestContext {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port");
     let port = listener.local_addr().unwrap().port();
     let url = format!("http://127.0.0.1:{}", port);
 
     let server = tokio::spawn(async move {
-        crate::start_server::start_server(listener, None)
+        crate::start_server::start_server(listener, None, params.allow_shutdown_from_frontend)
             .await
             .expect("Failed to start server");
     });
@@ -33,10 +45,22 @@ async fn setup() -> TestContext {
     }
 }
 
+async fn setup() -> TestContext {
+    setup_with_params(Default::default()).await
+}
+
 impl TestContext {
     async fn get(&self, path: &str) -> reqwest::Response {
         self.client
             .get(format!("{}{}", self.url, path))
+            .send()
+            .await
+            .unwrap()
+    }
+
+    async fn post(&self, path: &str) -> reqwest::Response {
+        self.client
+            .post(format!("{}{}", self.url, path))
             .send()
             .await
             .unwrap()
@@ -66,4 +90,18 @@ async fn invalid_path_is_handled() {
     let ctx = setup().await;
     let response = ctx.get("/not_found").await;
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn config_is_available() {
+    let ctx = setup().await;
+    let response = ctx.get("/api/config").await;
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn shutdown_is_not_authorized() {
+    let ctx = setup().await;
+    let response = ctx.post("/api/shutdown").await;
+    assert_eq!(response.status(), reqwest::StatusCode::UNAUTHORIZED);
 }

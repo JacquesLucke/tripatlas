@@ -6,14 +6,30 @@ pub struct ServeParams {
     pub host: String,
     pub port: u16,
     pub on_start: Option<Box<dyn FnOnce() + Send>>,
+    pub on_port_in_use: Option<Box<dyn FnOnce() + Send>>,
+    pub allow_shutdown_from_frontend: bool,
 }
 
 pub async fn serve(params: ServeParams) -> Result<()> {
-    // TODO: Check if port is already in use and hande that case.
-    let listener = std::net::TcpListener::bind((params.host.as_str(), params.port))?;
-    let port = listener.local_addr()?.port();
-    println!("Server running on http://{}:{}", params.host, port);
+    let url = format!("http://{}:{}", params.host, params.port);
 
-    start_server::start_server(listener, params.on_start).await?;
+    if let Ok(response) = reqwest::get(&url).await {
+        if response.status() == reqwest::StatusCode::OK {
+            if let Some(on_port_in_use) = params.on_port_in_use {
+                on_port_in_use();
+            }
+            return Ok(());
+        }
+    }
+
+    let listener = std::net::TcpListener::bind((params.host.as_str(), params.port))?;
+    println!("Starting server on {}", url);
+
+    start_server::start_server(
+        listener,
+        params.on_start,
+        params.allow_shutdown_from_frontend,
+    )
+    .await?;
     Ok(())
 }
