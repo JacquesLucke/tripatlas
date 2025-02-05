@@ -14,7 +14,7 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
     if params.frontend_port == params.api_port {
         return Err(anyhow::anyhow!("Frontend and API ports must be different"));
     }
-    let _frontend_dev_process = Command::new("npm")
+    let frontend_dev_process = Command::new("npm")
         .args([
             "run",
             "dev",
@@ -30,7 +30,13 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
             format!("http://{}:{}/api", params.api_host, params.api_port),
         )
         .kill_on_drop(true)
-        .spawn()?;
+        .spawn();
+
+    if frontend_dev_process.is_err() {
+        return Err(anyhow::anyhow!(
+            "Failed to start frontend dev process. This only works when you are working on the tripatlas source code."
+        ));
+    }
 
     let listener = std::net::TcpListener::bind((params.api_host.as_str(), params.api_port))?;
     start_server::start_server(listener, None, false).await?;
