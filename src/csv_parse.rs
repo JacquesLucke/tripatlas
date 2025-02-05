@@ -23,10 +23,18 @@ impl ParsedCsv {
     }
 
     pub fn rows_len(&self) -> usize {
+        self.raw_rows_len() - 1
+    }
+
+    pub fn raw_rows_len(&self) -> usize {
         self.row_offsets.len() - 1
     }
 
     pub fn row(&self, row: usize) -> ParsedCsvRow {
+        self.raw_row(row + 1)
+    }
+
+    pub fn raw_row(&self, row: usize) -> ParsedCsvRow {
         let start = self.row_offsets[row];
         let end = self.row_offsets[row + 1];
         ParsedCsvRow {
@@ -35,10 +43,10 @@ impl ParsedCsv {
     }
 
     pub fn headers<'a>(&self, buffer: &'a [u8]) -> Vec<&'a [u8]> {
-        if self.rows_len() == 0 {
+        if self.raw_rows_len() == 0 {
             return vec![];
         }
-        self.row(0)
+        self.raw_row(0)
             .fields
             .iter()
             .map(|f| &buffer[f.clone()])
