@@ -1,7 +1,9 @@
 name: Build and Deploy
 permissions:
   contents: write
-on: [push]
+on:
+  push:
+    branches: ["main"]
 jobs:
   build:
     runs-on: ${{ matrix.runner }}
