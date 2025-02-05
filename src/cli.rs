@@ -13,7 +13,9 @@ struct CLI {
 
 #[derive(Subcommand, Debug)]
 enum CLICommand {
+    /// Start a webserver that can be accessed from a browser.
     Serve {},
+    /// Start a development server with live reloading for the frontend.
     Dev {},
 }
 
