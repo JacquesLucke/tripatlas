@@ -1,86 +1,114 @@
-use std::{collections::HashMap, ops::Range};
+use std::str::Utf8Error;
 
 #[derive(Default)]
-pub struct ParsedCsv {
+pub struct CsvRows<'b> {
     row_offsets: Vec<usize>,
-    fields: Vec<Range<usize>>,
+    fields: Vec<&'b [u8]>,
 }
 
-impl ParsedCsv {
-    pub fn from_buffer(buffer: &[u8]) -> Self {
-        let mut csv = ParsedCsv {
-            ..Default::default()
-        };
-        csv.row_offsets.push(0);
+pub struct CsvRowsIter<'r, 'b> {
+    rows: &'r CsvRows<'b>,
+    row_i: usize,
+}
 
+pub struct CsvBufferSections<'a> {
+    pub header: &'a [u8],
+    pub data: &'a [u8],
+}
+
+pub fn parse_header_row_str(header_row: &[u8]) -> std::result::Result<Vec<&str>, Utf8Error> {
+    let mut fields = vec![];
+    parse_row_fields(header_row, 0, &mut fields);
+    fields.iter().map(|f| std::str::from_utf8(f)).collect()
+}
+
+pub fn split_header_and_data(buffer: &[u8]) -> CsvBufferSections {
+    let header_end_i = buffer
+        .iter()
+        .position(|&b| b == b'\n')
+        .unwrap_or(buffer.len());
+    let header_buffer = &buffer[..header_end_i];
+    let data_buffer = &buffer[header_end_i + 1..];
+    CsvBufferSections {
+        header: header_buffer,
+        data: data_buffer,
+    }
+}
+
+pub fn split_csv_buffer_into_line_aligned_chunks(buffer: &[u8]) -> Vec<&[u8]> {
+    let mut chunks = vec![];
+    chunks.push(buffer);
+    chunks
+}
+
+impl<'r, 'b> Iterator for CsvRowsIter<'r, 'b> {
+    type Item = CsvRow<'r, 'b>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.row_i + 1 >= self.rows.row_offsets.len() {
+            return None;
+        }
+        let row = self.rows.row(self.row_i);
+        self.row_i += 1;
+        Some(row)
+    }
+}
+
+impl<'b> CsvRows<'b> {
+    pub fn from_buffer(buffer: &'b [u8]) -> Self {
+        let mut row_offsets = vec![];
+        let mut fields = vec![];
+
+        row_offsets.push(0);
         let mut start = 0;
         while start < buffer.len() {
-            start = parse_row_fields(buffer, start, &mut csv.fields);
-            csv.row_offsets.push(csv.fields.len());
+            start = parse_row_fields(buffer, start, &mut fields);
+            row_offsets.push(fields.len());
         }
-
-        csv
+        CsvRows {
+            row_offsets,
+            fields,
+        }
     }
 
-    pub fn rows_len(&self) -> usize {
-        self.raw_rows_len() - 1
+    pub fn iter<'r>(&'r self) -> CsvRowsIter<'r, 'b> {
+        CsvRowsIter {
+            rows: self,
+            row_i: 0,
+        }
     }
 
-    pub fn raw_rows_len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.row_offsets.len() - 1
     }
 
-    pub fn row(&self, row: usize) -> ParsedCsvRow {
-        self.raw_row(row + 1)
-    }
-
-    pub fn raw_row(&self, row: usize) -> ParsedCsvRow {
+    pub fn row<'r>(&'r self, row: usize) -> CsvRow<'r, 'b> {
         let start = self.row_offsets[row];
         let end = self.row_offsets[row + 1];
-        ParsedCsvRow {
+        CsvRow {
             fields: &self.fields[start..end],
         }
     }
-
-    pub fn headers<'a>(&self, buffer: &'a [u8]) -> Vec<&'a [u8]> {
-        if self.raw_rows_len() == 0 {
-            return vec![];
-        }
-        self.raw_row(0)
-            .fields
-            .iter()
-            .map(|f| &buffer[f.clone()])
-            .collect()
-    }
-
-    pub fn header_indices<'a>(&self, buffer: &'a [u8]) -> HashMap<&'a [u8], usize> {
-        let mut map = HashMap::new();
-        for (i, header) in self.headers(buffer).iter().enumerate() {
-            map.insert(*header, i);
-        }
-        map
-    }
 }
 
-pub struct ParsedCsvRow<'a> {
-    fields: &'a [Range<usize>],
+pub struct CsvRow<'r, 'b> {
+    pub fields: &'r [&'b [u8]],
 }
 
-impl<'a> ParsedCsvRow<'a> {
-    pub fn fields_len(&self) -> usize {
+impl<'r, 'b> CsvRow<'r, 'b> {
+    pub fn len(&self) -> usize {
         self.fields.len()
     }
 
-    pub fn field<'b>(&self, buffer: &'b [u8], field: usize) -> &'b [u8] {
-        let range = &self.fields[field];
-        &buffer[range.clone()]
+    pub fn column(&self, column_i: usize) -> Option<&'b [u8]> {
+        self.fields.get(column_i).copied()
     }
 }
 
 /// Adds all the fields of the current row and returns the first index after the row.
 /// I.e. the index after the newline character or the end of the buffer.
 /// The start index has to be the index of the first character in the row.
-fn parse_row_fields(buffer: &[u8], start: usize, fields: &mut Vec<Range<usize>>) -> usize {
+fn parse_row_fields<'a>(buffer: &'a [u8], start: usize, fields: &mut Vec<&'a [u8]>) -> usize {
     let mut i = start;
     while i < buffer.len() {
         match buffer[i] {
@@ -91,14 +119,14 @@ fn parse_row_fields(buffer: &[u8], start: usize, fields: &mut Vec<Range<usize>>)
                 i += 1;
             }
             b',' => {
-                fields.push(i..i);
+                fields.push(b"");
                 i += 1;
                 handle_potentially_trailing_comma(buffer, i, fields);
             }
             b'"' => {
                 i += 1;
                 let end_of_field = find_end_of_quoted_field(buffer, i);
-                fields.push(i..end_of_field);
+                fields.push(&buffer[i..end_of_field]);
                 i = end_of_field;
                 while i < buffer.len() {
                     match buffer[i] {
@@ -121,7 +149,7 @@ fn parse_row_fields(buffer: &[u8], start: usize, fields: &mut Vec<Range<usize>>)
             }
             _ => {
                 let end_of_field = find_end_of_simple_field(buffer, i);
-                fields.push(i..end_of_field);
+                fields.push(&buffer[i..end_of_field]);
                 i = end_of_field;
                 while i < buffer.len() {
                     match buffer[i] {
@@ -145,14 +173,14 @@ fn parse_row_fields(buffer: &[u8], start: usize, fields: &mut Vec<Range<usize>>)
     buffer.len()
 }
 
-fn handle_potentially_trailing_comma(buffer: &[u8], i: usize, fields: &mut Vec<Range<usize>>) {
+fn handle_potentially_trailing_comma<'a>(buffer: &'a [u8], i: usize, fields: &mut Vec<&'a [u8]>) {
     if i <= buffer.len() {
         if i < buffer.len() {
             if buffer[i] == b'\n' || buffer[i] == b'\r' {
-                fields.push(i..i);
+                fields.push(b"");
             }
         } else {
-            fields.push(i..i);
+            fields.push(b"");
         }
     }
 }
@@ -254,7 +282,10 @@ mod tests {
     fn get_parsed_row(buffer: &str) -> Vec<&str> {
         let mut fields = vec![];
         parse_row_fields(buffer.as_bytes(), 0, &mut fields);
-        fields.iter().map(|f| &buffer[f.clone()]).collect()
+        fields
+            .iter()
+            .map(|f| std::str::from_utf8(f).unwrap())
+            .collect()
     }
 
     #[test]
@@ -278,23 +309,23 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_csv() {
+    fn test_parse_csv_buffer() {
         {
             let buffer = indoc! {"
                 123,456,789
                 1,2,3
             "}
             .as_bytes();
-            let csv = ParsedCsv::from_buffer(buffer);
-            assert_eq!(csv.raw_rows_len(), 2);
-            assert_eq!(csv.raw_row(0).fields_len(), 3);
-            assert_eq!(csv.raw_row(0).field(buffer, 0), b"123");
-            assert_eq!(csv.raw_row(0).field(buffer, 1), b"456");
-            assert_eq!(csv.raw_row(0).field(buffer, 2), b"789");
-            assert_eq!(csv.raw_row(1).fields_len(), 3);
-            assert_eq!(csv.raw_row(1).field(buffer, 0), b"1");
-            assert_eq!(csv.raw_row(1).field(buffer, 1), b"2");
-            assert_eq!(csv.raw_row(1).field(buffer, 2), b"3");
+            let rows = CsvRows::from_buffer(buffer);
+            assert_eq!(rows.len(), 2);
+            assert_eq!(rows.row(0).len(), 3);
+            assert_eq!(rows.row(0).column(0).unwrap(), b"123");
+            assert_eq!(rows.row(0).column(1).unwrap(), b"456");
+            assert_eq!(rows.row(0).column(2).unwrap(), b"789");
+            assert_eq!(rows.row(1).len(), 3);
+            assert_eq!(rows.row(1).column(0).unwrap(), b"1");
+            assert_eq!(rows.row(1).column(1).unwrap(), b"2");
+            assert_eq!(rows.row(1).column(2).unwrap(), b"3");
         }
         {
             let buffer = indoc! {r#"
@@ -306,39 +337,39 @@ mod tests {
                 1,2
             "#}
             .as_bytes();
-            let csv = ParsedCsv::from_buffer(buffer);
-            assert_eq!(csv.raw_rows_len(), 6);
-            assert_eq!(csv.raw_row(0).fields_len(), 6);
-            assert_eq!(csv.raw_row(0).field(buffer, 0), b"stop_name");
-            assert_eq!(csv.raw_row(0).field(buffer, 1), b"parent_station");
-            assert_eq!(csv.raw_row(0).field(buffer, 2), b"stop_id");
-            assert_eq!(csv.raw_row(0).field(buffer, 3), b"stop_lat");
-            assert_eq!(csv.raw_row(0).field(buffer, 4), b"stop_lon");
-            assert_eq!(csv.raw_row(0).field(buffer, 5), b"location_type");
-            assert_eq!(csv.raw_row(1).fields_len(), 6);
+            let csv = CsvRows::from_buffer(buffer);
+            assert_eq!(csv.len(), 6);
+            assert_eq!(csv.row(0).len(), 6);
+            assert_eq!(csv.row(0).column(0).unwrap(), b"stop_name");
+            assert_eq!(csv.row(0).column(1).unwrap(), b"parent_station");
+            assert_eq!(csv.row(0).column(2).unwrap(), b"stop_id");
+            assert_eq!(csv.row(0).column(3).unwrap(), b"stop_lat");
+            assert_eq!(csv.row(0).column(4).unwrap(), b"stop_lon");
+            assert_eq!(csv.row(0).column(5).unwrap(), b"location_type");
+            assert_eq!(csv.row(1).len(), 6);
             assert_eq!(
-                csv.raw_row(1).field(buffer, 0),
+                csv.row(1).column(0).unwrap(),
                 b"'s-Heerenberg Gouden Handen"
             );
-            assert_eq!(csv.raw_row(1).field(buffer, 1), b"");
-            assert_eq!(csv.raw_row(1).field(buffer, 2), b"237383");
-            assert_eq!(csv.raw_row(1).field(buffer, 3), b"51.87225");
-            assert_eq!(csv.raw_row(1).field(buffer, 4), b"6.2473383");
-            assert_eq!(csv.raw_row(1).field(buffer, 5), b"1");
-            assert_eq!(csv.raw_row(2).fields_len(), 6);
-            assert_eq!(csv.raw_row(2).field(buffer, 0), b"AB-Leider, Hafen");
-            assert_eq!(csv.raw_row(2).field(buffer, 1), b"49745");
-            assert_eq!(csv.raw_row(2).field(buffer, 2), b"35003");
-            assert_eq!(csv.raw_row(2).field(buffer, 3), b"49.9727");
-            assert_eq!(csv.raw_row(2).field(buffer, 4), b"9.107453");
-            assert_eq!(csv.raw_row(2).field(buffer, 5), b"");
-            assert_eq!(csv.raw_row(3).fields_len(), 0);
-            assert_eq!(csv.raw_row(4).fields_len(), 2);
-            assert_eq!(csv.raw_row(4).field(buffer, 0), b"");
-            assert_eq!(csv.raw_row(4).field(buffer, 1), b"");
-            assert_eq!(csv.raw_row(5).fields_len(), 2);
-            assert_eq!(csv.raw_row(5).field(buffer, 0), b"1");
-            assert_eq!(csv.raw_row(5).field(buffer, 1), b"2");
+            assert_eq!(csv.row(1).column(1).unwrap(), b"");
+            assert_eq!(csv.row(1).column(2).unwrap(), b"237383");
+            assert_eq!(csv.row(1).column(3).unwrap(), b"51.87225");
+            assert_eq!(csv.row(1).column(4).unwrap(), b"6.2473383");
+            assert_eq!(csv.row(1).column(5).unwrap(), b"1");
+            assert_eq!(csv.row(2).len(), 6);
+            assert_eq!(csv.row(2).column(0).unwrap(), b"AB-Leider, Hafen");
+            assert_eq!(csv.row(2).column(1).unwrap(), b"49745");
+            assert_eq!(csv.row(2).column(2).unwrap(), b"35003");
+            assert_eq!(csv.row(2).column(3).unwrap(), b"49.9727");
+            assert_eq!(csv.row(2).column(4).unwrap(), b"9.107453");
+            assert_eq!(csv.row(2).column(5).unwrap(), b"");
+            assert_eq!(csv.row(3).len(), 0);
+            assert_eq!(csv.row(4).len(), 2);
+            assert_eq!(csv.row(4).column(0).unwrap(), b"");
+            assert_eq!(csv.row(4).column(1).unwrap(), b"");
+            assert_eq!(csv.row(5).len(), 2);
+            assert_eq!(csv.row(5).column(0).unwrap(), b"1");
+            assert_eq!(csv.row(5).column(1).unwrap(), b"2");
         }
     }
 }
