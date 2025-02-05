@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::HashMap, ops::Range};
 
 #[derive(Default)]
 pub struct ParsedCsv {
@@ -33,9 +33,28 @@ impl ParsedCsv {
             fields: &self.fields[start..end],
         }
     }
+
+    pub fn headers<'a>(&self, buffer: &'a [u8]) -> Vec<&'a [u8]> {
+        if self.rows_len() == 0 {
+            return vec![];
+        }
+        self.row(0)
+            .fields
+            .iter()
+            .map(|f| &buffer[f.clone()])
+            .collect()
+    }
+
+    pub fn header_indices<'a>(&self, buffer: &'a [u8]) -> HashMap<&'a [u8], usize> {
+        let mut map = HashMap::new();
+        for (i, header) in self.headers(buffer).iter().enumerate() {
+            map.insert(*header, i);
+        }
+        map
+    }
 }
 
-struct ParsedCsvRow<'a> {
+pub struct ParsedCsvRow<'a> {
     fields: &'a [Range<usize>],
 }
 
