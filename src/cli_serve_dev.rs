@@ -7,13 +7,19 @@ pub struct ServeDevParams {
     pub frontend_host: String,
     pub frontend_port: u16,
     pub api_host: String,
-    pub api_port: u16,
+    pub api_port: Option<u16>,
 }
 
 pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
-    if params.frontend_port == params.api_port {
-        return Err(anyhow::anyhow!("Frontend and API ports must be different"));
+    if let Some(api_port) = params.api_port {
+        if api_port == params.frontend_port {
+            return Err(anyhow::anyhow!("Frontend and API ports must be different"));
+        }
     }
+    let api_listener =
+        std::net::TcpListener::bind((params.api_host.as_str(), params.api_port.unwrap_or(0)))?;
+    let api_port = api_listener.local_addr()?.port();
+
     let frontend_dev_process = Command::new("npm")
         .args([
             "run",
@@ -27,7 +33,7 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
         .current_dir("./frontend")
         .env(
             "VITE_TRIP_ATLAS_API_URL",
-            format!("http://{}:{}/api", params.api_host, params.api_port),
+            format!("http://{}:{}/api", params.api_host, api_port),
         )
         .kill_on_drop(true)
         .spawn();
@@ -38,7 +44,6 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
         ));
     }
 
-    let listener = std::net::TcpListener::bind((params.api_host.as_str(), params.api_port))?;
-    start_server::start_server(listener, None, false).await?;
+    start_server::start_server(api_listener, None, false).await?;
     Ok(())
 }
