@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 
 use crate::cli_serve;
 use crate::cli_serve_dev;
+use crate::indexed_gtfs;
 
 const DEFAULT_FRONTEND_HOST: &str = "localhost";
 const DEFAULT_FRONTEND_PORT: u16 = 7654;
@@ -30,6 +31,7 @@ enum CLICommand {
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
     },
+    ParseTest {},
 }
 
 pub async fn handle_command_line_arguments() -> Result<()> {
@@ -74,6 +76,9 @@ pub async fn handle_command_line_arguments() -> Result<()> {
                 api_port: None,
             })
             .await?
+        }
+        Some(CLICommand::ParseTest {}) => {
+            indexed_gtfs::parse_performance_test();
         }
     }
     Ok(())
