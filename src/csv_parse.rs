@@ -389,6 +389,22 @@ mod tests {
     }
 
     #[test]
+    fn test_rows_iterator() {
+        let buffer = indoc! {"
+                1
+                3
+                5
+            "}
+        .as_bytes();
+        let rows = CsvRows::from_buffer(buffer);
+        let mut iter = rows.iter();
+        assert_eq!(iter.next().unwrap().column(0).unwrap(), b"1");
+        assert_eq!(iter.next().unwrap().column(0).unwrap(), b"3");
+        assert_eq!(iter.next().unwrap().column(0).unwrap(), b"5");
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
     fn test_split_csv_buffer_into_line_aligned_chunks() {
         let buffer = indoc! {r#"
             0,1,2,3
