@@ -62,6 +62,7 @@ impl<'a> csvelo::ParseCsvField<'a> for PickupType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(PickupType::Unknown);
         }
@@ -90,6 +91,7 @@ impl<'a> csvelo::ParseCsvField<'a> for DropOffType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(DropOffType::Unknown);
         }
@@ -118,6 +120,7 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousPickupType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(ContinuousPickupType::Unknown);
         }
@@ -146,6 +149,7 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousDropOffType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(ContinuousDropOffType::Unknown);
         }
@@ -172,6 +176,7 @@ impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(TimePointType::Unknown);
         }
@@ -199,6 +204,7 @@ impl<'a> csvelo::ParseCsvField<'a> for LocationType {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(LocationType::Unknown);
         }
@@ -227,6 +233,7 @@ impl<'a> csvelo::ParseCsvField<'a> for WheelchairBoarding {
     where
         Self: 'a,
     {
+        let buffer = buffer.trim_ascii();
         if buffer.len() != 1 {
             return Ok(WheelchairBoarding::Unknown);
         }
