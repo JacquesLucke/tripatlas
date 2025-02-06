@@ -47,6 +47,20 @@ pub struct Stops<'a> {
     pub platform_code: Option<Vec<&'a str>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Trips<'a> {
+    pub route_id: Vec<&'a str>,
+    pub service_id: Vec<&'a str>,
+    pub trip_id: Vec<&'a str>,
+    pub trip_headsign: Option<Vec<&'a str>>,
+    pub trip_short_name: Option<Vec<&'a str>>,
+    pub direction_id: Option<Vec<DirectionId>>,
+    pub block_id: Option<Vec<&'a str>>,
+    pub shape_id: Option<Vec<&'a str>>,
+    pub wheelchair_accessible: Option<Vec<WheelchairAccessible>>,
+    pub bikes_allowed: Option<Vec<BikesAllowed>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -62,15 +76,11 @@ impl<'a> csvelo::ParseCsvField<'a> for PickupType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(PickupType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(PickupType::Regular),
-            b'1' => Ok(PickupType::NotAvailable),
-            b'2' => Ok(PickupType::MustPhone),
-            b'3' => Ok(PickupType::MustCoordinateWithDriver),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(PickupType::Regular),
+            b"1" => Ok(PickupType::NotAvailable),
+            b"2" => Ok(PickupType::MustPhone),
+            b"3" => Ok(PickupType::MustCoordinateWithDriver),
             _ => Ok(PickupType::Unknown),
         }
     }
@@ -91,15 +101,11 @@ impl<'a> csvelo::ParseCsvField<'a> for DropOffType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(DropOffType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(DropOffType::Regular),
-            b'1' => Ok(DropOffType::NotAvailable),
-            b'2' => Ok(DropOffType::MustPhone),
-            b'3' => Ok(DropOffType::MustCoordinateWithDriver),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(DropOffType::Regular),
+            b"1" => Ok(DropOffType::NotAvailable),
+            b"2" => Ok(DropOffType::MustPhone),
+            b"3" => Ok(DropOffType::MustCoordinateWithDriver),
             _ => Ok(DropOffType::Unknown),
         }
     }
@@ -120,15 +126,11 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousPickupType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(ContinuousPickupType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(ContinuousPickupType::Regular),
-            b'1' => Ok(ContinuousPickupType::NotAvailable),
-            b'2' => Ok(ContinuousPickupType::MustPhone),
-            b'3' => Ok(ContinuousPickupType::MustCoordinateWithDriver),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(ContinuousPickupType::Regular),
+            b"1" => Ok(ContinuousPickupType::NotAvailable),
+            b"2" => Ok(ContinuousPickupType::MustPhone),
+            b"3" => Ok(ContinuousPickupType::MustCoordinateWithDriver),
             _ => Ok(ContinuousPickupType::Unknown),
         }
     }
@@ -149,15 +151,11 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousDropOffType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(ContinuousDropOffType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(ContinuousDropOffType::Regular),
-            b'1' => Ok(ContinuousDropOffType::NotAvailable),
-            b'2' => Ok(ContinuousDropOffType::MustPhone),
-            b'3' => Ok(ContinuousDropOffType::MustCoordinateWithDriver),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(ContinuousDropOffType::Regular),
+            b"1" => Ok(ContinuousDropOffType::NotAvailable),
+            b"2" => Ok(ContinuousDropOffType::MustPhone),
+            b"3" => Ok(ContinuousDropOffType::MustCoordinateWithDriver),
             _ => Ok(ContinuousDropOffType::Unknown),
         }
     }
@@ -176,13 +174,9 @@ impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(TimePointType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(TimePointType::Approximate),
-            b'1' => Ok(TimePointType::Exact),
+        match buffer.trim_ascii() {
+            b"0" => Ok(TimePointType::Approximate),
+            b"" | b"1" => Ok(TimePointType::Exact),
             _ => Ok(TimePointType::Unknown),
         }
     }
@@ -204,16 +198,12 @@ impl<'a> csvelo::ParseCsvField<'a> for LocationType {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(LocationType::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(LocationType::Stop),
-            b'1' => Ok(LocationType::Station),
-            b'2' => Ok(LocationType::Entrance),
-            b'3' => Ok(LocationType::Generic),
-            b'4' => Ok(LocationType::BoardingArea),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(LocationType::Stop),
+            b"1" => Ok(LocationType::Station),
+            b"2" => Ok(LocationType::Entrance),
+            b"3" => Ok(LocationType::Generic),
+            b"4" => Ok(LocationType::BoardingArea),
             _ => Ok(LocationType::Unknown),
         }
     }
@@ -233,15 +223,77 @@ impl<'a> csvelo::ParseCsvField<'a> for WheelchairBoarding {
     where
         Self: 'a,
     {
-        let buffer = buffer.trim_ascii();
-        if buffer.len() != 1 {
-            return Ok(WheelchairBoarding::Unknown);
-        }
-        match buffer[0] {
-            b'0' => Ok(WheelchairBoarding::NoInfoOrSeeParent),
-            b'1' => Ok(WheelchairBoarding::SomeAccessibility),
-            b'2' => Ok(WheelchairBoarding::NoAccessibility),
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(WheelchairBoarding::NoInfoOrSeeParent),
+            b"1" => Ok(WheelchairBoarding::SomeAccessibility),
+            b"2" => Ok(WheelchairBoarding::NoAccessibility),
             _ => Ok(WheelchairBoarding::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DirectionId {
+    Outbound,
+    Inbound,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for DirectionId {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"0" => Ok(DirectionId::Outbound),
+            b"1" => Ok(DirectionId::Inbound),
+            _ => Ok(DirectionId::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum WheelchairAccessible {
+    #[default]
+    NoInfo,
+    AtLeastOne,
+    No,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for WheelchairAccessible {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(WheelchairAccessible::NoInfo),
+            b"1" => Ok(WheelchairAccessible::AtLeastOne),
+            b"2" => Ok(WheelchairAccessible::No),
+            _ => Ok(WheelchairAccessible::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum BikesAllowed {
+    #[default]
+    NoInfo,
+    AtLeastOne,
+    No,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for BikesAllowed {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(BikesAllowed::NoInfo),
+            b"1" => Ok(BikesAllowed::AtLeastOne),
+            b"2" => Ok(BikesAllowed::No),
+            _ => Ok(BikesAllowed::Unknown),
         }
     }
 }
@@ -343,6 +395,21 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+    {
+        let trips_timer = Instant::now();
+        let trips_path = gtfs_dir.join("trips.txt");
+        let trips_file = std::fs::File::open(trips_path).unwrap();
+        let trips_mmap = unsafe { memmap2::Mmap::map(&trips_file) }.unwrap();
+        let trips = parse_trips(&trips_mmap[..]).unwrap();
+        println!(
+            "Trips: {:?}, found: {}",
+            trips_timer.elapsed(),
+            trips
+                .trip_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -351,4 +418,8 @@ fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
 
 fn parse_stops<'a>(buffer: &'a [u8]) -> Result<Stops<'a>, ()> {
     Stops::from_csv_buffer(&buffer)
+}
+
+fn parse_trips<'a>(buffer: &'a [u8]) -> Result<Trips<'a>, ()> {
+    Trips::from_csv_buffer(&buffer)
 }
