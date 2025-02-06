@@ -61,6 +61,23 @@ pub struct Trips<'a> {
     pub bikes_allowed: Option<Vec<BikesAllowed>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Routes<'a> {
+    pub route_id: Vec<&'a str>,
+    pub agency_id: Option<Vec<&'a str>>,
+    pub route_short_name: Option<Vec<&'a str>>,
+    pub route_long_name: Option<Vec<&'a str>>,
+    pub route_desc: Option<Vec<&'a str>>,
+    pub route_type: Option<Vec<RouteType>>,
+    pub route_url: Option<Vec<&'a str>>,
+    pub route_color: Option<Vec<Color>>,
+    pub route_text_color: Option<Vec<Color>>,
+    pub route_sort_order: Option<Vec<u32>>,
+    pub continuous_pickup: Option<Vec<ContinuousPickupType>>,
+    pub continuous_drop_off: Option<Vec<ContinuousDropOffType>>,
+    pub network_id: Option<Vec<&'a str>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -298,6 +315,75 @@ impl<'a> csvelo::ParseCsvField<'a> for BikesAllowed {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum RouteType {
+    #[default]
+    Tram,
+    Subway,
+    Rail,
+    Bus,
+    Ferry,
+    CableTram,
+    AerialLift,
+    Funicular,
+    Trolleybus,
+    Monorail,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for RouteType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"0" => Ok(RouteType::Tram),
+            b"1" => Ok(RouteType::Subway),
+            b"2" => Ok(RouteType::Rail),
+            b"3" => Ok(RouteType::Bus),
+            b"4" => Ok(RouteType::Ferry),
+            b"5" => Ok(RouteType::CableTram),
+            b"6" => Ok(RouteType::AerialLift),
+            b"7" => Ok(RouteType::Funicular),
+            b"11" => Ok(RouteType::Trolleybus),
+            b"12" => Ok(RouteType::Monorail),
+            _ => Ok(RouteType::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for Color {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        let buffer = buffer.trim_ascii();
+        if buffer.len() != 6 {
+            return Err(());
+        }
+        let r = hex_char_to_number(buffer[0]) * 16 + hex_char_to_number(buffer[1]);
+        let g = hex_char_to_number(buffer[2]) * 16 + hex_char_to_number(buffer[3]);
+        let b = hex_char_to_number(buffer[4]) * 16 + hex_char_to_number(buffer[5]);
+        Ok(Color { r, g, b })
+    }
+}
+
+fn hex_char_to_number(c: u8) -> u8 {
+    match c {
+        b'0'..=b'9' => c - b'0',
+        b'a'..=b'f' => c - b'a' + 10,
+        b'A'..=b'F' => c - b'A' + 10,
+        _ => 0,
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -410,6 +496,22 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let routes_timer = Instant::now();
+        let routes_path = gtfs_dir.join("routes.txt");
+        let routes_file = std::fs::File::open(routes_path).unwrap();
+        let routes_mmap = unsafe { memmap2::Mmap::map(&routes_file) }.unwrap();
+        let routes = parse_routes(&routes_mmap[..]).unwrap();
+        println!(
+            "Routes: {:?}, found: {}",
+            routes_timer.elapsed(),
+            routes
+                .route_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -422,4 +524,8 @@ fn parse_stops<'a>(buffer: &'a [u8]) -> Result<Stops<'a>, ()> {
 
 fn parse_trips<'a>(buffer: &'a [u8]) -> Result<Trips<'a>, ()> {
     Trips::from_csv_buffer(&buffer)
+}
+
+fn parse_routes<'a>(buffer: &'a [u8]) -> Result<Routes<'a>, ()> {
+    Routes::from_csv_buffer(&buffer)
 }
