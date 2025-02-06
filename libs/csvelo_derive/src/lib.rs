@@ -176,38 +176,62 @@ fn generate_chunk_parsing_function(source_info: &SourceInfo) -> proc_macro2::Tok
 fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStream {
     let header_name = &source_info.header_name;
     let main_name = &source_info.main_name;
-    let parts = source_info.csv_struct_fields.iter().map(|f| {
+
+    let setup_parts = source_info.csv_struct_fields.iter().map(|f| {
+        let name = &f.name;
+        quote! {
+            let mut #name = vec![];
+        }
+    });
+    let process_parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
         if f.optional {
             quote! {
-                #name: if let Some(_) = header.#name {
-                    let mut value_slices = vec![];
-                    for chunk in &chunks {
-                        value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
-                    }
-                    Some(csvelo::flatten_slices(&value_slices))
-                } else {
-                    None
+                if let Some(_) = header.#name {
+                    s.spawn(|_| {
+                        let mut value_slices = vec![];
+                        for chunk in &chunks {
+                            value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
+                        }
+                        #name = csvelo::flatten_slices(&value_slices);
+                    });
                 }
             }
         } else {
             quote! {
-                #name: {
+                s.spawn(|_| {
                     let mut value_slices = vec![];
                     for chunk in &chunks {
                         value_slices.push(chunk.#name.as_slice());
                     }
-                    csvelo::flatten_slices(&value_slices)
-                }
+                    #name = csvelo::flatten_slices(&value_slices);
+                });
             }
         }
     });
+    let output_parts = source_info.csv_struct_fields.iter().map(|f| {
+        let name = &f.name;
+        if f.optional {
+            quote! {
+                #name: if let Some(_) = header.#name { Some(#name) } else { None }
+            }
+        } else {
+            quote! {
+                #name
+            }
+        }
+    });
+
     let (impl_generics, ty_generics, where_clause) = source_info.input.generics.split_for_impl();
     quote! {
         impl #impl_generics #main_name #ty_generics #where_clause {
             fn from_csv_parse_chunks(header: &#header_name, chunks: Vec<Self>) -> std::result::Result<Self, ()> {
+                #(#setup_parts)*
+                rayon::scope(|s| {
+                    #(#process_parts)*
+                });
                 Ok(Self {
-                    #(#parts),*
+                    #(#output_parts),*
                 })
             }
         }
