@@ -16,6 +16,75 @@ pub struct CsvBufferSections<'a> {
     pub data: &'a [u8],
 }
 
+pub struct CsvHeader<'a> {
+    pub column_titles: Vec<&'a [u8]>,
+}
+
+use std::str;
+
+pub trait Parse<'a>: Sized {
+    fn parse(input: &'a [u8]) -> Result<Self, ()>;
+}
+
+impl<'a> Parse<'a> for &'a str {
+    fn parse(input: &'a [u8]) -> Result<Self, ()> {
+        str::from_utf8(input).map_err(|_| ())
+    }
+}
+
+pub trait ParseCsvField<'a>: Sized {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a;
+}
+
+impl<'a> ParseCsvField<'a> for &'a str {
+    fn parse_csv_field<'b>(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        std::str::from_utf8(buffer).map_err(|_| ())
+    }
+}
+
+impl<'a> ParseCsvField<'a> for i32 {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        std::str::from_utf8(buffer)
+            .map_err(|_| ())
+            .and_then(|s| s.parse().map_err(|_| ()))
+    }
+}
+
+impl<'a> ParseCsvField<'a> for String {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        std::str::from_utf8(buffer)
+            .map_err(|_| ())
+            .and_then(|s| s.parse().map_err(|_| ()))
+    }
+}
+
+impl CsvHeader<'_> {
+    pub fn get_column_index(&self, column_name: &str) -> Option<usize> {
+        self.column_titles
+            .iter()
+            .position(|c| c == &column_name.as_bytes())
+    }
+}
+
+pub fn parse_header(header: &[u8]) -> CsvHeader {
+    let mut fields = vec![];
+    parse_record_fields(header, 0, &mut fields);
+    CsvHeader {
+        column_titles: fields,
+    }
+}
+
 pub fn parse_header_record_str(header: &[u8]) -> std::result::Result<Vec<&str>, Utf8Error> {
     let mut fields = vec![];
     parse_record_fields(header, 0, &mut fields);
@@ -104,6 +173,20 @@ impl<'r, 'b> CsvRecord<'r, 'b> {
     pub fn column(&self, column_i: usize) -> Option<&'b [u8]> {
         self.fields.get(column_i).copied()
     }
+}
+
+pub fn parse_column_value<'a, T>(
+    records: &CsvRecords<'a>,
+    column_i: usize,
+    parse_field: impl Fn(&'a [u8]) -> std::result::Result<T, ()>,
+) -> std::result::Result<Vec<T>, ()> {
+    let mut data = vec![];
+    data.reserve(records.len());
+    for record in records.iter() {
+        let column_buffer = record.column(column_i).unwrap_or(b"");
+        data.push(parse_field(column_buffer)?);
+    }
+    Ok(data)
 }
 
 /// Adds all the fields of the current record and returns the first index after the record.

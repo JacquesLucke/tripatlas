@@ -592,7 +592,17 @@ dependencies = [
 name = "csvelo"
 version = "0.1.0"
 dependencies = [
+ "csvelo_derive",
  "indoc",
+]
+
+[[package]]
+name = "csvelo_derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

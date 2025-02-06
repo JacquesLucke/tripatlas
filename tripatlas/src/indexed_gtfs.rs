@@ -192,7 +192,7 @@ pub fn parse_performance_test() {
 }
 
 fn parse_stop_times(buffer: &[u8]) -> anyhow::Result<IndexedGtfsStopTimes> {
-    let sections = csvelo::split_header_and_data(&buffer);
+    let sections = csvelo::split_header_and_data(buffer);
     let column_titles = csvelo::parse_header_record_str(sections.header)?;
     let header = parse_stop_times_header(&column_titles)?;
 
