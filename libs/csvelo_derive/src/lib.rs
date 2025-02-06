@@ -41,24 +41,9 @@ fn parse_source_info(input: &DeriveInput) -> Result<SourceInfo, ()> {
         if let syn::Fields::Named(ref fields) = data.fields {
             for field in fields.named.iter() {
                 let option_seg = get_first_path_segment_with_name(&field.ty, "Option");
-                // let vec_seg = if let Some(option_seg) = option_seg {
-                //     get_first_path_segment_with_name(
-                //         get_first_inner_type(option_seg).ok_or(())?,
-                //         "Vec",
-                //     )
-                //     .ok_or(())?
-                // } else {
-                //     get_first_path_segment_with_name(&field.ty, "Vec").ok_or(())?
-                // };
-                // let field_ty = get_first_inner_type(vec_seg).ok_or(())?;
                 csv_struct_fields.push(ColumnFieldInfo {
                     name: field.ident.clone().ok_or(())?,
                     optional: option_seg.is_some(),
-                    // field_type_name: if let Type::Path(path_ty) = field_ty {
-                    //     path_ty.path.segments.last().unwrap().ident.clone()
-                    // } else {
-                    //     return Err(());
-                    // },
                 });
             }
         } else {
@@ -103,17 +88,6 @@ fn get_first_path_segment_with_name<'a>(
     } else {
         None
     }
-}
-
-fn get_first_inner_type(outer: &syn::PathSegment) -> Option<&syn::Type> {
-    if let syn::PathArguments::AngleBracketed(args) = &outer.arguments {
-        if let Some(arg) = args.args.first() {
-            if let syn::GenericArgument::Type(inner_ty) = arg {
-                return Some(inner_ty);
-            }
-        }
-    }
-    None
 }
 
 fn generate_header_struct(source_info: &SourceInfo) -> proc_macro2::TokenStream {
