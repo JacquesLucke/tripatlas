@@ -242,7 +242,6 @@ fn find_start_of_next_record(buffer: &[u8], start: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use actix_web::cookie::time::format_description::parse;
     use indoc::indoc;
 
     use super::*;
