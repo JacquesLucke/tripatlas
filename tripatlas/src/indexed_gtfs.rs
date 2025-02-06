@@ -1,4 +1,5 @@
 use csvelo::CSVParser;
+use num_format::ToFormattedString;
 use rayon::prelude::*;
 use std::{fmt::Debug, path::Path, time::Instant};
 
@@ -232,16 +233,25 @@ impl Debug for ServiceDayTime {
 }
 
 pub fn parse_performance_test() {
-    let start_load = Instant::now();
-    let path = Path::new("/home/jacques/Documents/gtfs_germany/stop_times.txt");
-    let file = std::fs::File::open(path).unwrap();
-    let mmap = unsafe { memmap2::Mmap::map(&file) }.unwrap();
-    let buffer = &mmap[..];
-    println!("Load buffer: {:?}", start_load.elapsed());
+    let gtfs_dir = Path::new("/home/jacques/Documents/gtfs_germany");
 
-    let parse_times_start = Instant::now();
-    let stop_times: StopTimes = StopTimes::from_csv_buffer(&buffer).unwrap();
-    println!("Detail stop times: {:#?}", parse_times_start.elapsed());
+    {
+        let stop_times_timer = Instant::now();
+        let stop_times_path = gtfs_dir.join("stop_times.txt");
+        let stop_times_file = std::fs::File::open(stop_times_path).unwrap();
+        let stop_times_mmap = unsafe { memmap2::Mmap::map(&stop_times_file) }.unwrap();
+        let stop_times: StopTimes = parse_stop_times(&stop_times_mmap[..]).unwrap();
+        println!(
+            "Stop Times: {:?}, found: {}",
+            stop_times_timer.elapsed(),
+            stop_times
+                .stop_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
+}
 
-    println!("{:#?}", stop_times.stop_id.len());
+fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
+    StopTimes::from_csv_buffer(&buffer)
 }

@@ -20,6 +20,7 @@ indoc = "2.0.5"
 rayon = "1.10.0"
 csvelo = { path = "../libs/csvelo" }
 memmap2 = "0.9.5"
+num-format = "0.4.4"
 
 [build-dependencies]
 duct = "0.13.7"
