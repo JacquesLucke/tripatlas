@@ -23,15 +23,10 @@ pub fn parse_header_row_str(header_row: &[u8]) -> std::result::Result<Vec<&str>,
 }
 
 pub fn split_header_and_data(buffer: &[u8]) -> CsvBufferSections {
-    let header_end_i = buffer
-        .iter()
-        .position(|&b| b == b'\n')
-        .unwrap_or(buffer.len());
-    let header_buffer = &buffer[..header_end_i];
-    let data_buffer = &buffer[header_end_i + 1..];
+    let data_start_i = find_start_of_next_row(buffer, 0);
     CsvBufferSections {
-        header: header_buffer,
-        data: data_buffer,
+        header: &buffer[..data_start_i],
+        data: &buffer[data_start_i..],
     }
 }
 
@@ -238,6 +233,8 @@ fn find_end_of_quoted_field(buffer: &[u8], start: usize) -> usize {
     buffer.len()
 }
 
+/// Finds the index of the first character in the next row, or the end of the buffer
+/// if there is no next row.
 fn find_start_of_next_row(buffer: &[u8], start: usize) -> usize {
     if let Some(newline_offset) = buffer[start..].iter().position(|&c| c == b'\n') {
         start + newline_offset + 1
@@ -248,6 +245,7 @@ fn find_start_of_next_row(buffer: &[u8], start: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use actix_web::cookie::time::format_description::parse;
     use indoc::indoc;
 
     use super::*;
@@ -431,5 +429,20 @@ mod tests {
             assert_eq!(chunks.len(), 1);
             assert_eq!(chunks[0], b"0,1,2,3\n,,,\n4,5,6,7\n");
         }
+    }
+
+    #[test]
+    fn test_split_header_and_data() {
+        let buffer = indoc! {r#"
+            Title,Author,Year
+            1,2,3
+            4,5,6
+        "#};
+        let sections = split_header_and_data(buffer.as_bytes());
+        assert_eq!(sections.header, b"Title,Author,Year\n");
+        assert_eq!(sections.data, b"1,2,3\n4,5,6\n");
+
+        let headers = parse_header_row_str(sections.header).unwrap();
+        assert_eq!(headers, &["Title", "Author", "Year"]);
     }
 }
