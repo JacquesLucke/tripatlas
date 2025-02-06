@@ -5,10 +5,6 @@ use std::{fmt::Debug, path::Path, time::Instant};
 
 // GTFS Reference: https://gtfs.org/documentation/schedule/reference/
 
-// pub struct IndexedGtfs<'a> {
-//     pub stop_times: Vec<IndexedGtfsStopTime<'a>>,
-// }
-
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct StopTimes<'a> {
     pub trip_id: Vec<&'a str>,
@@ -168,14 +164,6 @@ impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct ServiceDayTime {
-    seconds: u32,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct OptionalServiceDayTime(Option<ServiceDayTime>);
-
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -187,6 +175,26 @@ impl<'a> csvelo::ParseCsvField<'a> for OptionalF32 {
         let s = std::str::from_utf8(buffer).map_err(|_| ())?;
         let f = s.parse::<f32>().map_err(|_| ()).ok();
         Ok(OptionalF32(f))
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct ServiceDayTime {
+    seconds: u32,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct OptionalServiceDayTime(Option<ServiceDayTime>);
+
+impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        if let Ok(seconds) = parse_hh_mm_ss_to_seconds_fast(buffer.trim_ascii()) {
+            return Ok(OptionalServiceDayTime(Some(ServiceDayTime { seconds })));
+        }
+        Ok(OptionalServiceDayTime(None))
     }
 }
 
@@ -202,18 +210,6 @@ fn parse_hh_mm_ss_to_seconds_fast(buffer: &[u8]) -> Result<u32, ()> {
         return Ok(h * 3600 + m * 60 + s);
     }
     Err(())
-}
-
-impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        if let Ok(seconds) = parse_hh_mm_ss_to_seconds_fast(buffer.trim_ascii()) {
-            return Ok(OptionalServiceDayTime(Some(ServiceDayTime { seconds })));
-        }
-        Ok(OptionalServiceDayTime(None))
-    }
 }
 
 impl Debug for ServiceDayTime {
