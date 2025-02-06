@@ -263,7 +263,9 @@ impl Debug for ServiceDayTime {
 pub fn parse_performance_test() {
     let start_load = Instant::now();
     let path = Path::new("/home/jacques/Documents/gtfs_germany/stop_times.txt");
-    let buffer = std::fs::read(path).unwrap();
+    let file = std::fs::File::open(path).unwrap();
+    let mmap = unsafe { memmap2::Mmap::map(&file) }.unwrap();
+    let buffer = &mmap[..];
     println!("Load buffer: {:?}", start_load.elapsed());
 
     let parse_times_start = Instant::now();
