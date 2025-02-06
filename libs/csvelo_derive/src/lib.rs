@@ -181,12 +181,11 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
         if f.optional {
             quote! {
                 #name: if let Some(_) = header.#name {
-                    Some(
-                        chunks
-                            .iter()
-                            .flat_map(|chunk| chunk.#name.clone().unwrap())
-                            .collect(),
-                    )
+                    let mut values = vec![];
+                    for chunk in &chunks {
+                        values.extend_from_slice(chunk.#name.as_ref().unwrap().as_slice());
+                    }
+                    Some(values)
                 } else {
                     None
                 }
