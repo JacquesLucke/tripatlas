@@ -1,8 +1,5 @@
-use std::{fmt::Debug, path::Path, time::Instant};
-
 use anyhow::anyhow;
-
-use crate::csv_parse::{self};
+use std::{fmt::Debug, path::Path, time::Instant};
 
 // GTFS Reference: https://gtfs.org/documentation/schedule/reference/
 
@@ -195,15 +192,15 @@ pub fn parse_performance_test() {
 }
 
 fn parse_stop_times(buffer: &[u8]) -> anyhow::Result<IndexedGtfsStopTimes> {
-    let sections = csv_parse::split_header_and_data(&buffer);
-    let column_titles = csv_parse::parse_header_record_str(sections.header)?;
+    let sections = csvelo::split_header_and_data(&buffer);
+    let column_titles = csvelo::parse_header_record_str(sections.header)?;
     let header = parse_stop_times_header(&column_titles)?;
 
     let data_chunks =
-        csv_parse::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
+        csvelo::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
     let mut parsed_chunks = vec![];
     for chunk in data_chunks {
-        let records = csv_parse::CsvRecords::from_buffer(chunk);
+        let records = csvelo::CsvRecords::from_buffer(chunk);
         parsed_chunks.push(parse_stop_times_chunk(&header, &records)?);
     }
     merge_stop_time_chunks(&header, parsed_chunks)
@@ -287,7 +284,7 @@ fn parse_stop_times_header(column_titles: &[&str]) -> anyhow::Result<StopTimesHe
 
 fn parse_stop_times_chunk<'a>(
     header: &StopTimesHeader,
-    records: &csv_parse::CsvRecords<'a>,
+    records: &csvelo::CsvRecords<'a>,
 ) -> anyhow::Result<StopTimesChunk<'a>> {
     Ok(StopTimesChunk {
         trip_id: load_column(records, header.trip_id, |s| Ok(s))?,
@@ -519,7 +516,7 @@ fn get_optional_column_index(column_titles: &[&str], column_name: &str) -> Optio
 }
 
 fn load_column<'a, T>(
-    records: &csv_parse::CsvRecords<'a>,
+    records: &csvelo::CsvRecords<'a>,
     column_i: usize,
     f: impl Fn(&'a str) -> anyhow::Result<T>,
 ) -> anyhow::Result<Vec<T>> {

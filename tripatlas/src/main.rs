@@ -3,7 +3,6 @@ use anyhow::Result;
 mod cli;
 mod cli_serve;
 mod cli_serve_dev;
-mod csv_parse;
 mod indexed_gtfs;
 mod start_server;
 

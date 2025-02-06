@@ -1,2 +1,3 @@
 [workspace]
-members = ["tripatlas"]
+resolver = "2"
+members = ["libs/csvelo", "tripatlas"]
