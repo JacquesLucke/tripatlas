@@ -221,7 +221,7 @@ fn generate_full_parse_function(source_info: &SourceInfo) -> proc_macro2::TokenS
                 let header = csvelo::parse_header(sections.header);
                 let header = #header_name::from_header_chunk(header)?;
                 let data_chunks = csvelo::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
-                let parsed_chunks = data_chunks.iter().map(|chunk| {
+                let parsed_chunks = data_chunks.par_iter().map(|chunk| {
                     let records = csvelo::CsvRecords::from_buffer(chunk);
                     #main_name::parse_csv_chunk(&header, &records)
                 }).collect::<std::result::Result<Vec<_>, _>>()?;

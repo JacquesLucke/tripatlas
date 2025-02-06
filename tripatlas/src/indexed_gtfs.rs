@@ -1,4 +1,5 @@
 use csvelo::CSVParser;
+use rayon::prelude::*;
 use std::{fmt::Debug, path::Path, time::Instant};
 
 // GTFS Reference: https://gtfs.org/documentation/schedule/reference/

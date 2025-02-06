@@ -1,5 +1,6 @@
 use csvelo_derive::CSVParser;
 use indoc::indoc;
+use rayon::prelude::*;
 
 #[test]
 fn test_simple() {

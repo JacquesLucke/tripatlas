@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 indoc = "2.0.5"
 csvelo_derive = { path = "../csvelo_derive" }
+rayon = "1.10.0"

@@ -594,6 +594,7 @@ version = "0.1.0"
 dependencies = [
  "csvelo_derive",
  "indoc",
+ "rayon",
 ]
 
 [[package]]
