@@ -8,7 +8,7 @@ use std::{fmt::Debug, path::Path, time::Instant};
 // }
 
 #[derive(CSVParser, Debug, Clone, Default)]
-pub struct StopTimes2<'a> {
+pub struct StopTimes<'a> {
     pub trip_id: Vec<&'a str>,
     pub stop_id: Vec<&'a str>,
     pub stop_sequence: Vec<u32>,
@@ -266,7 +266,7 @@ pub fn parse_performance_test() {
     println!("Load buffer: {:?}", start_load.elapsed());
 
     let parse_times_start = Instant::now();
-    let stop_times: StopTimes2 = StopTimes2::from_csv_buffer(&buffer).unwrap();
+    let stop_times: StopTimes = StopTimes::from_csv_buffer(&buffer).unwrap();
     println!("Detail stop times: {:#?}", parse_times_start.elapsed());
 
     println!("{:#?}", stop_times.stop_id.len());
