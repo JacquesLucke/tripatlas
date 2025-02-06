@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use csvelo::CSVParser;
 use std::{fmt::Debug, path::Path, time::Instant};
 
 // GTFS Reference: https://gtfs.org/documentation/schedule/reference/
@@ -7,24 +8,24 @@ use std::{fmt::Debug, path::Path, time::Instant};
 //     pub stop_times: Vec<IndexedGtfsStopTime<'a>>,
 // }
 
-#[derive(Debug, Clone, Default)]
-pub struct IndexedGtfsStopTimes<'a> {
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct StopTimes2<'a> {
     pub trip_id: Vec<&'a str>,
     pub stop_id: Vec<&'a str>,
     pub stop_sequence: Vec<u32>,
-    pub arrival_time: Vec<Option<ServiceDayTime>>,
-    pub departure_time: Vec<Option<ServiceDayTime>>,
+    pub arrival_time: Vec<OptionalServiceDayTime>,
+    pub departure_time: Vec<OptionalServiceDayTime>,
 
     pub location_group_id: Option<Vec<&'a str>>,
     pub location_id: Option<Vec<&'a str>>,
     pub stop_headsign: Option<Vec<&'a str>>,
-    pub start_pickup_drop_off_window: Option<Vec<Option<ServiceDayTime>>>,
-    pub end_pickup_drop_off_window: Option<Vec<Option<ServiceDayTime>>>,
+    pub start_pickup_drop_off_window: Option<Vec<OptionalServiceDayTime>>,
+    pub end_pickup_drop_off_window: Option<Vec<OptionalServiceDayTime>>,
     pub pickup_type: Option<Vec<PickupType>>,
     pub drop_off_type: Option<Vec<DropOffType>>,
     pub continuous_pickup: Option<Vec<ContinuousPickupType>>,
     pub continuous_drop_off: Option<Vec<ContinuousDropOffType>>,
-    pub shape_dist_traveled: Option<Vec<Option<f32>>>,
+    pub shape_dist_traveled: Option<Vec<OptionalF32>>,
     pub timepoint: Option<Vec<TimePointType>>,
     pub pickup_booking_rule_id: Option<Vec<&'a str>>,
     pub drop_off_booking_rule_id: Option<Vec<&'a str>>,
@@ -52,6 +53,17 @@ impl PickupType {
     }
 }
 
+impl<'a> csvelo::ParseCsvField<'a> for PickupType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        Ok(PickupType::from_gtfs_str(
+            std::str::from_utf8(buffer).map_err(|_| ())?,
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum DropOffType {
     #[default]
@@ -71,6 +83,17 @@ impl DropOffType {
             "3" => DropOffType::MustCoordinateWithDriver,
             _ => DropOffType::Unknown,
         }
+    }
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for DropOffType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        Ok(DropOffType::from_gtfs_str(
+            std::str::from_utf8(buffer).map_err(|_| ())?,
+        ))
     }
 }
 
@@ -96,6 +119,17 @@ impl ContinuousPickupType {
     }
 }
 
+impl<'a> csvelo::ParseCsvField<'a> for ContinuousPickupType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        Ok(ContinuousPickupType::from_gtfs_str(
+            std::str::from_utf8(buffer).map_err(|_| ())?,
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum ContinuousDropOffType {
     #[default]
@@ -118,6 +152,17 @@ impl ContinuousDropOffType {
     }
 }
 
+impl<'a> csvelo::ParseCsvField<'a> for ContinuousDropOffType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        Ok(ContinuousDropOffType::from_gtfs_str(
+            std::str::from_utf8(buffer).map_err(|_| ())?,
+        ))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum TimePointType {
     Approximate,
@@ -136,10 +181,24 @@ impl TimePointType {
     }
 }
 
+impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        Ok(TimePointType::from_gtfs_str(
+            std::str::from_utf8(buffer).map_err(|_| ())?,
+        ))
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct ServiceDayTime {
     seconds: u32,
 }
+
+#[derive(Debug, Copy, Clone)]
+pub struct OptionalServiceDayTime(Option<ServiceDayTime>);
 
 impl ServiceDayTime {
     fn from_gtfs_str(time: &str) -> Option<Self> {
@@ -157,6 +216,31 @@ impl ServiceDayTime {
             }
         }
         None
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct OptionalF32(Option<f32>);
+
+impl<'a> csvelo::ParseCsvField<'a> for OptionalF32 {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        let s = std::str::from_utf8(buffer).map_err(|_| ())?;
+        let f = s.parse::<f32>().map_err(|_| ()).ok();
+        Ok(OptionalF32(f))
+    }
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        let s = std::str::from_utf8(buffer).map_err(|_| ())?;
+        let time = ServiceDayTime::from_gtfs_str(s);
+        Ok(OptionalServiceDayTime(time))
     }
 }
 
@@ -183,351 +267,8 @@ pub fn parse_performance_test() {
     println!("Load buffer: {:?}", start_load.elapsed());
 
     let parse_times_start = Instant::now();
-
-    let _stop_times = parse_stop_times(&buffer);
-
+    let stop_times: StopTimes2 = StopTimes2::from_csv_buffer(&buffer).unwrap();
     println!("Detail stop times: {:#?}", parse_times_start.elapsed());
 
-    // println!("{:#?}", stop_times);
-}
-
-fn parse_stop_times(buffer: &[u8]) -> anyhow::Result<IndexedGtfsStopTimes> {
-    let sections = csvelo::split_header_and_data(buffer);
-    let column_titles = csvelo::parse_header_record_str(sections.header)?;
-    let header = parse_stop_times_header(&column_titles)?;
-
-    let data_chunks =
-        csvelo::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
-    let mut parsed_chunks = vec![];
-    for chunk in data_chunks {
-        let records = csvelo::CsvRecords::from_buffer(chunk);
-        parsed_chunks.push(parse_stop_times_chunk(&header, &records)?);
-    }
-    merge_stop_time_chunks(&header, parsed_chunks)
-}
-
-#[derive(Debug)]
-struct StopTimesHeader {
-    pub trip_id: usize,
-    pub stop_id: usize,
-    pub stop_sequence: usize,
-    pub arrival_time: usize,
-    pub departure_time: usize,
-
-    pub location_group_id: Option<usize>,
-    pub location_id: Option<usize>,
-    pub stop_headsign: Option<usize>,
-    pub start_pickup_drop_off_window: Option<usize>,
-    pub end_pickup_drop_off_window: Option<usize>,
-    pub pickup_type: Option<usize>,
-    pub drop_off_type: Option<usize>,
-    pub continuous_pickup: Option<usize>,
-    pub continuous_drop_off: Option<usize>,
-    pub shape_dist_traveled: Option<usize>,
-    pub timepoint: Option<usize>,
-    pub pickup_booking_rule_id: Option<usize>,
-    pub drop_off_booking_rule_id: Option<usize>,
-}
-struct StopTimesChunk<'b> {
-    pub trip_id: Vec<&'b str>,
-    pub stop_id: Vec<&'b str>,
-    pub stop_sequence: Vec<u32>,
-    pub arrival_time: Vec<Option<ServiceDayTime>>,
-    pub departure_time: Vec<Option<ServiceDayTime>>,
-
-    pub location_group_id: Option<Vec<&'b str>>,
-    pub location_id: Option<Vec<&'b str>>,
-    pub stop_headsign: Option<Vec<&'b str>>,
-    pub start_pickup_drop_off_window: Option<Vec<Option<ServiceDayTime>>>,
-    pub end_pickup_drop_off_window: Option<Vec<Option<ServiceDayTime>>>,
-    pub pickup_type: Option<Vec<PickupType>>,
-    pub drop_off_type: Option<Vec<DropOffType>>,
-    pub continuous_pickup: Option<Vec<ContinuousPickupType>>,
-    pub continuous_drop_off: Option<Vec<ContinuousDropOffType>>,
-    pub shape_dist_traveled: Option<Vec<Option<f32>>>,
-    pub timepoint: Option<Vec<TimePointType>>,
-    pub pickup_booking_rule_id: Option<Vec<&'b str>>,
-    pub drop_off_booking_rule_id: Option<Vec<&'b str>>,
-}
-
-fn parse_stop_times_header(column_titles: &[&str]) -> anyhow::Result<StopTimesHeader> {
-    Ok(StopTimesHeader {
-        trip_id: get_required_column_index(column_titles, "trip_id")?,
-        stop_id: get_required_column_index(column_titles, "stop_id")?,
-        stop_sequence: get_required_column_index(column_titles, "stop_sequence")?,
-        arrival_time: get_required_column_index(column_titles, "arrival_time")?,
-        departure_time: get_required_column_index(column_titles, "departure_time")?,
-        location_group_id: get_optional_column_index(column_titles, "location_group_id"),
-        location_id: get_optional_column_index(column_titles, "location_id"),
-        stop_headsign: get_optional_column_index(column_titles, "stop_headsign"),
-        start_pickup_drop_off_window: get_optional_column_index(
-            column_titles,
-            "start_pickup_drop_off_window",
-        ),
-        end_pickup_drop_off_window: get_optional_column_index(
-            column_titles,
-            "end_pickup_drop_off_window",
-        ),
-        pickup_type: get_optional_column_index(column_titles, "pickup_type"),
-        drop_off_type: get_optional_column_index(column_titles, "drop_off_type"),
-        continuous_pickup: get_optional_column_index(column_titles, "continuous_pickup"),
-        continuous_drop_off: get_optional_column_index(column_titles, "continuous_drop_off"),
-        shape_dist_traveled: get_optional_column_index(column_titles, "shape_dist_traveled"),
-        timepoint: get_optional_column_index(column_titles, "timepoint"),
-        pickup_booking_rule_id: get_optional_column_index(column_titles, "pickup_booking_rule_id"),
-        drop_off_booking_rule_id: get_optional_column_index(
-            column_titles,
-            "drop_off_booking_rule_id",
-        ),
-    })
-}
-
-fn parse_stop_times_chunk<'a>(
-    header: &StopTimesHeader,
-    records: &csvelo::CsvRecords<'a>,
-) -> anyhow::Result<StopTimesChunk<'a>> {
-    Ok(StopTimesChunk {
-        trip_id: load_column(records, header.trip_id, |s| Ok(s))?,
-        stop_id: load_column(records, header.stop_id, |s| Ok(s))?,
-        stop_sequence: load_column(records, header.stop_sequence, |s| Ok(s.parse()?))?,
-        arrival_time: load_column(records, header.arrival_time, |s| {
-            Ok(ServiceDayTime::from_gtfs_str(s))
-        })?,
-        departure_time: load_column(records, header.departure_time, |s| {
-            Ok(ServiceDayTime::from_gtfs_str(s))
-        })?,
-        location_group_id: match header.location_group_id {
-            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
-            None => None,
-        },
-        location_id: match header.location_id {
-            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
-            None => None,
-        },
-        stop_headsign: match header.stop_headsign {
-            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
-            None => None,
-        },
-        start_pickup_drop_off_window: match header.start_pickup_drop_off_window {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(ServiceDayTime::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        end_pickup_drop_off_window: match header.end_pickup_drop_off_window {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(ServiceDayTime::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        pickup_type: match header.pickup_type {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(PickupType::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        drop_off_type: match header.drop_off_type {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(DropOffType::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        continuous_pickup: match header.continuous_pickup {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(ContinuousPickupType::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        continuous_drop_off: match header.continuous_drop_off {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(ContinuousDropOffType::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        shape_dist_traveled: match header.shape_dist_traveled {
-            Some(i) => Some(load_column(records, i, |s| Ok(s.parse().ok()))?),
-            None => None,
-        },
-        timepoint: match header.timepoint {
-            Some(i) => Some(load_column(records, i, |s| {
-                Ok(TimePointType::from_gtfs_str(s))
-            })?),
-            None => None,
-        },
-        pickup_booking_rule_id: match header.pickup_booking_rule_id {
-            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
-            None => None,
-        },
-        drop_off_booking_rule_id: match header.drop_off_booking_rule_id {
-            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
-            None => None,
-        },
-    })
-}
-
-fn merge_stop_time_chunks<'b>(
-    header: &StopTimesHeader,
-    chunks: Vec<StopTimesChunk<'b>>,
-) -> anyhow::Result<IndexedGtfsStopTimes<'b>> {
-    Ok(IndexedGtfsStopTimes {
-        trip_id: chunks.iter().flat_map(|c| c.trip_id.clone()).collect(),
-        stop_id: chunks.iter().flat_map(|c| c.stop_id.clone()).collect(),
-        stop_sequence: chunks
-            .iter()
-            .flat_map(|c| c.stop_sequence.clone())
-            .collect(),
-        arrival_time: chunks.iter().flat_map(|c| c.arrival_time.clone()).collect(),
-        departure_time: chunks
-            .iter()
-            .flat_map(|c| c.departure_time.clone())
-            .collect(),
-        location_group_id: match header.location_group_id {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.location_group_id.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        location_id: match header.location_id {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.location_id.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        stop_headsign: match header.stop_headsign {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.stop_headsign.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        start_pickup_drop_off_window: match header.start_pickup_drop_off_window {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.start_pickup_drop_off_window.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        end_pickup_drop_off_window: match header.end_pickup_drop_off_window {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.end_pickup_drop_off_window.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        pickup_type: match header.pickup_type {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.pickup_type.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        drop_off_type: match header.drop_off_type {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.drop_off_type.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        continuous_pickup: match header.continuous_pickup {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.continuous_pickup.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        continuous_drop_off: match header.continuous_drop_off {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.continuous_drop_off.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        shape_dist_traveled: match header.shape_dist_traveled {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.shape_dist_traveled.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        timepoint: match header.timepoint {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.timepoint.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        pickup_booking_rule_id: match header.pickup_booking_rule_id {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.pickup_booking_rule_id.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-        drop_off_booking_rule_id: match header.drop_off_booking_rule_id {
-            Some(_) => Some(
-                chunks
-                    .iter()
-                    .flat_map(|c| c.drop_off_booking_rule_id.clone().unwrap())
-                    .collect(),
-            ),
-            None => None,
-        },
-    })
-}
-
-fn get_required_column_index(
-    column_titles: &[&str],
-    column_name: &str,
-) -> Result<usize, anyhow::Error> {
-    column_titles
-        .iter()
-        .position(|&h| h == column_name)
-        .ok_or_else(|| anyhow!(format!("Missing column: {}", column_name)))
-}
-
-fn get_optional_column_index(column_titles: &[&str], column_name: &str) -> Option<usize> {
-    column_titles.iter().position(|&h| h == column_name)
-}
-
-fn load_column<'a, T>(
-    records: &csvelo::CsvRecords<'a>,
-    column_i: usize,
-    f: impl Fn(&'a str) -> anyhow::Result<T>,
-) -> anyhow::Result<Vec<T>> {
-    let mut data = vec![];
-    data.reserve(records.len());
-    for record in records.iter() {
-        let column_buffer = record.column(column_i);
-        let column_buffer = column_buffer.unwrap_or(b"");
-        let column_str = std::str::from_utf8(column_buffer)?;
-        let value = f(column_str)?;
-        data.push(value);
-    }
-    Ok(data)
+    println!("{:#?}", stop_times.stop_id.len());
 }

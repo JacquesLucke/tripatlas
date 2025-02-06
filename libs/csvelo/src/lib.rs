@@ -1,3 +1,4 @@
+pub use csvelo_derive::CSVParser;
 use std::str::Utf8Error;
 
 #[derive(Default)]
@@ -20,18 +21,6 @@ pub struct CsvHeader<'a> {
     pub column_titles: Vec<&'a [u8]>,
 }
 
-use std::str;
-
-pub trait Parse<'a>: Sized {
-    fn parse(input: &'a [u8]) -> Result<Self, ()>;
-}
-
-impl<'a> Parse<'a> for &'a str {
-    fn parse(input: &'a [u8]) -> Result<Self, ()> {
-        str::from_utf8(input).map_err(|_| ())
-    }
-}
-
 pub trait ParseCsvField<'a>: Sized {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
@@ -48,6 +37,17 @@ impl<'a> ParseCsvField<'a> for &'a str {
 }
 
 impl<'a> ParseCsvField<'a> for i32 {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        std::str::from_utf8(buffer)
+            .map_err(|_| ())
+            .and_then(|s| s.parse().map_err(|_| ()))
+    }
+}
+
+impl<'a> ParseCsvField<'a> for u32 {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
