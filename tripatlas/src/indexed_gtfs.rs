@@ -175,25 +175,6 @@ pub struct ServiceDayTime {
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalServiceDayTime(Option<ServiceDayTime>);
 
-impl ServiceDayTime {
-    fn from_gtfs_str(time: &str) -> Option<Self> {
-        let mut parts = time.split(":");
-        if let Some(hours) = parts.next() {
-            if let Some(minutes) = parts.next() {
-                if let Some(seconds) = parts.next() {
-                    let total_seconds = hours.parse::<u32>().ok()? * 3600
-                        + minutes.parse::<u32>().ok()? * 60
-                        + seconds.parse::<u32>().ok()?;
-                    return Some(ServiceDayTime {
-                        seconds: total_seconds,
-                    });
-                }
-            }
-        }
-        None
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -208,14 +189,29 @@ impl<'a> csvelo::ParseCsvField<'a> for OptionalF32 {
     }
 }
 
+fn parse_two_digit_int(buffer: &[u8]) -> u8 {
+    return buffer[0].wrapping_sub(b'0') * 10 + buffer[1].wrapping_sub(b'0');
+}
+
+fn parse_hh_mm_ss_to_seconds_fast(buffer: &[u8]) -> Result<u32, ()> {
+    if buffer.len() >= 8 && buffer[2] == b':' && buffer[5] == b':' {
+        let h = parse_two_digit_int(&buffer[0..2]) as u32;
+        let m = parse_two_digit_int(&buffer[3..5]) as u32;
+        let s = parse_two_digit_int(&buffer[6..8]) as u32;
+        return Ok(h * 3600 + m * 60 + s);
+    }
+    Err(())
+}
+
 impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        let s = std::str::from_utf8(buffer).map_err(|_| ())?;
-        let time = ServiceDayTime::from_gtfs_str(s);
-        Ok(OptionalServiceDayTime(time))
+        if let Ok(seconds) = parse_hh_mm_ss_to_seconds_fast(buffer.trim_ascii()) {
+            return Ok(OptionalServiceDayTime(Some(ServiceDayTime { seconds })));
+        }
+        Ok(OptionalServiceDayTime(None))
     }
 }
 
