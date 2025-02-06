@@ -28,6 +28,25 @@ pub struct StopTimes<'a> {
     pub drop_off_booking_rule_id: Option<Vec<&'a str>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Stops<'a> {
+    pub stop_id: Vec<&'a str>,
+    pub stop_code: Option<Vec<&'a str>>,
+    pub stop_name: Vec<&'a str>,
+    pub tts_stop_name: Option<Vec<&'a str>>,
+    pub stop_desc: Option<Vec<&'a str>>,
+    pub stop_lat: Vec<OptionalF32>,
+    pub stop_lon: Vec<OptionalF32>,
+    pub zone_id: Option<Vec<&'a str>>,
+    pub stop_url: Option<Vec<&'a str>>,
+    pub location_type: Option<Vec<LocationType>>,
+    pub parent_station: Option<Vec<&'a str>>,
+    pub stop_timezone: Option<Vec<&'a str>>,
+    pub wheelchair_boarding: Option<Vec<WheelchairBoarding>>,
+    pub level_id: Option<Vec<&'a str>>,
+    pub platform_code: Option<Vec<&'a str>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -164,6 +183,62 @@ impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum LocationType {
+    #[default]
+    Stop,
+    Station,
+    Entrance,
+    Generic,
+    BoardingArea,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for LocationType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        if buffer.len() != 1 {
+            return Ok(LocationType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(LocationType::Stop),
+            b'1' => Ok(LocationType::Station),
+            b'2' => Ok(LocationType::Entrance),
+            b'3' => Ok(LocationType::Generic),
+            b'4' => Ok(LocationType::BoardingArea),
+            _ => Ok(LocationType::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum WheelchairBoarding {
+    #[default]
+    NoInfoOrSeeParent,
+    SomeAccessibility,
+    NoAccessibility,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for WheelchairBoarding {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        if buffer.len() != 1 {
+            return Ok(WheelchairBoarding::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(WheelchairBoarding::NoInfoOrSeeParent),
+            b'1' => Ok(WheelchairBoarding::SomeAccessibility),
+            b'2' => Ok(WheelchairBoarding::NoAccessibility),
+            _ => Ok(WheelchairBoarding::Unknown),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -236,7 +311,7 @@ pub fn parse_performance_test() {
         let stop_times_path = gtfs_dir.join("stop_times.txt");
         let stop_times_file = std::fs::File::open(stop_times_path).unwrap();
         let stop_times_mmap = unsafe { memmap2::Mmap::map(&stop_times_file) }.unwrap();
-        let stop_times: StopTimes = parse_stop_times(&stop_times_mmap[..]).unwrap();
+        let stop_times = parse_stop_times(&stop_times_mmap[..]).unwrap();
         println!(
             "Stop Times: {:?}, found: {}",
             stop_times_timer.elapsed(),
@@ -246,8 +321,27 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+    {
+        let stops_timer = Instant::now();
+        let stops_path = gtfs_dir.join("stops.txt");
+        let stops_file = std::fs::File::open(stops_path).unwrap();
+        let stops_mmap = unsafe { memmap2::Mmap::map(&stops_file) }.unwrap();
+        let stops = parse_stops(&stops_mmap[..]).unwrap();
+        println!(
+            "Stop Times: {:?}, found: {}",
+            stops_timer.elapsed(),
+            stops
+                .stop_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
     StopTimes::from_csv_buffer(&buffer)
+}
+
+fn parse_stops<'a>(buffer: &'a [u8]) -> Result<Stops<'a>, ()> {
+    Stops::from_csv_buffer(&buffer)
 }
