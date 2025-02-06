@@ -1,6 +1,15 @@
 pub use csvelo_derive::CSVParser;
 use std::str::Utf8Error;
 
+pub fn flatten_slices<T: Clone>(slices: &[&[T]]) -> Vec<T> {
+    let total_len: usize = slices.iter().map(|s| s.len()).sum();
+    let mut flattened = Vec::with_capacity(total_len);
+    for v in slices {
+        flattened.extend_from_slice(v);
+    }
+    flattened
+}
+
 #[derive(Default)]
 pub struct CsvRecords<'b> {
     offsets: Vec<usize>,

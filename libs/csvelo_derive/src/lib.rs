@@ -181,18 +181,24 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
         if f.optional {
             quote! {
                 #name: if let Some(_) = header.#name {
-                    let mut values = vec![];
+                    let mut value_slices = vec![];
                     for chunk in &chunks {
-                        values.extend_from_slice(chunk.#name.as_ref().unwrap().as_slice());
+                        value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
                     }
-                    Some(values)
+                    Some(csvelo::flatten_slices(&value_slices))
                 } else {
                     None
                 }
             }
         } else {
             quote! {
-                #name: chunks.iter().flat_map(|chunk| chunk.#name.clone()).collect()
+                #name: {
+                    let mut value_slices = vec![];
+                    for chunk in &chunks {
+                        value_slices.push(chunk.#name.as_slice());
+                    }
+                    csvelo::flatten_slices(&value_slices)
+                }
             }
         }
     });
