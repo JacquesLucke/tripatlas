@@ -196,15 +196,15 @@ pub fn parse_performance_test() {
 
 fn parse_stop_times(buffer: &[u8]) -> anyhow::Result<IndexedGtfsStopTimes> {
     let sections = csv_parse::split_header_and_data(&buffer);
-    let column_titles = csv_parse::parse_header_row_str(sections.header)?;
+    let column_titles = csv_parse::parse_header_record_str(sections.header)?;
     let header = parse_stop_times_header(&column_titles)?;
 
     let data_chunks =
-        csv_parse::split_csv_buffer_into_line_aligned_chunks(sections.data, 256 * 1024);
+        csv_parse::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
     let mut parsed_chunks = vec![];
     for chunk in data_chunks {
-        let rows = csv_parse::CsvRows::from_buffer(chunk);
-        parsed_chunks.push(parse_stop_times_chunk(&header, &rows)?);
+        let records = csv_parse::CsvRecords::from_buffer(chunk);
+        parsed_chunks.push(parse_stop_times_chunk(&header, &records)?);
     }
     merge_stop_time_chunks(&header, parsed_chunks)
 }
@@ -287,78 +287,82 @@ fn parse_stop_times_header(column_titles: &[&str]) -> anyhow::Result<StopTimesHe
 
 fn parse_stop_times_chunk<'a>(
     header: &StopTimesHeader,
-    rows: &csv_parse::CsvRows<'a>,
+    records: &csv_parse::CsvRecords<'a>,
 ) -> anyhow::Result<StopTimesChunk<'a>> {
     Ok(StopTimesChunk {
-        trip_id: load_column(rows, header.trip_id, |s| Ok(s))?,
-        stop_id: load_column(rows, header.stop_id, |s| Ok(s))?,
-        stop_sequence: load_column(rows, header.stop_sequence, |s| Ok(s.parse()?))?,
-        arrival_time: load_column(rows, header.arrival_time, |s| {
+        trip_id: load_column(records, header.trip_id, |s| Ok(s))?,
+        stop_id: load_column(records, header.stop_id, |s| Ok(s))?,
+        stop_sequence: load_column(records, header.stop_sequence, |s| Ok(s.parse()?))?,
+        arrival_time: load_column(records, header.arrival_time, |s| {
             Ok(ServiceDayTime::from_gtfs_str(s))
         })?,
-        departure_time: load_column(rows, header.departure_time, |s| {
+        departure_time: load_column(records, header.departure_time, |s| {
             Ok(ServiceDayTime::from_gtfs_str(s))
         })?,
         location_group_id: match header.location_group_id {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
             None => None,
         },
         location_id: match header.location_id {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
             None => None,
         },
         stop_headsign: match header.stop_headsign {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
             None => None,
         },
         start_pickup_drop_off_window: match header.start_pickup_drop_off_window {
-            Some(i) => Some(load_column(rows, i, |s| {
+            Some(i) => Some(load_column(records, i, |s| {
                 Ok(ServiceDayTime::from_gtfs_str(s))
             })?),
             None => None,
         },
         end_pickup_drop_off_window: match header.end_pickup_drop_off_window {
-            Some(i) => Some(load_column(rows, i, |s| {
+            Some(i) => Some(load_column(records, i, |s| {
                 Ok(ServiceDayTime::from_gtfs_str(s))
             })?),
             None => None,
         },
         pickup_type: match header.pickup_type {
-            Some(i) => Some(load_column(rows, i, |s| Ok(PickupType::from_gtfs_str(s)))?),
+            Some(i) => Some(load_column(records, i, |s| {
+                Ok(PickupType::from_gtfs_str(s))
+            })?),
             None => None,
         },
         drop_off_type: match header.drop_off_type {
-            Some(i) => Some(load_column(rows, i, |s| Ok(DropOffType::from_gtfs_str(s)))?),
+            Some(i) => Some(load_column(records, i, |s| {
+                Ok(DropOffType::from_gtfs_str(s))
+            })?),
             None => None,
         },
         continuous_pickup: match header.continuous_pickup {
-            Some(i) => Some(load_column(rows, i, |s| {
+            Some(i) => Some(load_column(records, i, |s| {
                 Ok(ContinuousPickupType::from_gtfs_str(s))
             })?),
             None => None,
         },
         continuous_drop_off: match header.continuous_drop_off {
-            Some(i) => Some(load_column(rows, i, |s| {
+            Some(i) => Some(load_column(records, i, |s| {
                 Ok(ContinuousDropOffType::from_gtfs_str(s))
             })?),
             None => None,
         },
         shape_dist_traveled: match header.shape_dist_traveled {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s.parse().ok()))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s.parse().ok()))?),
             None => None,
         },
         timepoint: match header.timepoint {
-            Some(i) => Some(load_column(rows, i, |s| {
+            Some(i) => Some(load_column(records, i, |s| {
                 Ok(TimePointType::from_gtfs_str(s))
             })?),
             None => None,
         },
         pickup_booking_rule_id: match header.pickup_booking_rule_id {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
             None => None,
         },
         drop_off_booking_rule_id: match header.drop_off_booking_rule_id {
-            Some(i) => Some(load_column(rows, i, |s| Ok(s))?),
+            Some(i) => Some(load_column(records, i, |s| Ok(s))?),
             None => None,
         },
     })
@@ -515,14 +519,14 @@ fn get_optional_column_index(column_titles: &[&str], column_name: &str) -> Optio
 }
 
 fn load_column<'a, T>(
-    rows: &csv_parse::CsvRows<'a>,
+    records: &csv_parse::CsvRecords<'a>,
     column_i: usize,
     f: impl Fn(&'a str) -> anyhow::Result<T>,
 ) -> anyhow::Result<Vec<T>> {
     let mut data = vec![];
-    data.reserve(rows.len());
-    for row in rows.iter() {
-        let column_buffer = row.column(column_i);
+    data.reserve(records.len());
+    for record in records.iter() {
+        let column_buffer = record.column(column_i);
         let column_buffer = column_buffer.unwrap_or(b"");
         let column_str = std::str::from_utf8(column_buffer)?;
         let value = f(column_str)?;
