@@ -82,3 +82,21 @@ fn test_extra_column() {
     .unwrap();
     assert_eq!(data.a.len(), 2);
 }
+
+// #[test]
+// fn test_with_ref() {
+//     #[derive(CSVParser)]
+//     struct MyCsvData<'a> {
+//         data: Vec<&'a str>,
+//     }
+
+//     let bytes = indoc! {r#"
+//         data
+//         why
+//         where
+//     "#}
+//     .as_bytes();
+
+//     let data = MyCsvData::from_csv_buffer(bytes).unwrap();
+//     assert_eq!(data.a.len(), 2);
+// }

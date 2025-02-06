@@ -1,5 +1,3 @@
-use std::option;
-
 use proc_macro2::Span;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Ident, Type};
@@ -10,10 +8,8 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let source_info = match parse_source_info(input.clone()) {
         Ok(source_info) => source_info,
-        Err(_) => return quote! {}.into(),
+        Err(_) => panic!(),
     };
-
-    println!("{:#?}", source_info);
 
     let header_struct = generate_header_struct(&source_info);
     let header_parser_function = generate_header_parser_function(&source_info);
@@ -35,7 +31,7 @@ struct SourceInfo {
 struct ColumnFieldInfo {
     name: Ident,
     optional: bool,
-    field_type_name: Ident,
+    // field_type_name: Ident,
 }
 
 fn parse_source_info(input: DeriveInput) -> Result<SourceInfo, ()> {
@@ -44,24 +40,24 @@ fn parse_source_info(input: DeriveInput) -> Result<SourceInfo, ()> {
         if let syn::Fields::Named(ref fields) = data.fields {
             for field in fields.named.iter() {
                 let option_seg = get_first_path_segment_with_name(&field.ty, "Option");
-                let vec_seg = if let Some(option_seg) = option_seg {
-                    get_first_path_segment_with_name(
-                        get_first_inner_type(option_seg).ok_or(())?,
-                        "Vec",
-                    )
-                    .ok_or(())?
-                } else {
-                    get_first_path_segment_with_name(&field.ty, "Vec").ok_or(())?
-                };
-                let field_ty = get_first_inner_type(vec_seg).ok_or(())?;
+                // let vec_seg = if let Some(option_seg) = option_seg {
+                //     get_first_path_segment_with_name(
+                //         get_first_inner_type(option_seg).ok_or(())?,
+                //         "Vec",
+                //     )
+                //     .ok_or(())?
+                // } else {
+                //     get_first_path_segment_with_name(&field.ty, "Vec").ok_or(())?
+                // };
+                // let field_ty = get_first_inner_type(vec_seg).ok_or(())?;
                 csv_struct_fields.push(ColumnFieldInfo {
                     name: field.ident.clone().ok_or(())?,
                     optional: option_seg.is_some(),
-                    field_type_name: if let Type::Path(path_ty) = field_ty {
-                        path_ty.path.segments.last().unwrap().ident.clone()
-                    } else {
-                        return Err(());
-                    },
+                    // field_type_name: if let Type::Path(path_ty) = field_ty {
+                    //     path_ty.path.segments.last().unwrap().ident.clone()
+                    // } else {
+                    //     return Err(());
+                    // },
                 });
             }
         } else {
