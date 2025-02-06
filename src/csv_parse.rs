@@ -42,17 +42,11 @@ pub fn split_csv_buffer_into_line_aligned_chunks(
     let mut chunks = vec![];
     let mut next_chunk_start = 0;
     while next_chunk_start < buffer.len() {
-        let chunk_end = (next_chunk_start + approximate_chunk_size).min(buffer.len());
-        if let Some(newline_offset) = buffer[chunk_end..].iter().position(|&c| c == b'\n') {
-            let chunk_end = chunk_end + newline_offset + 1;
-            chunks.push(&buffer[next_chunk_start..chunk_end]);
-            next_chunk_start = chunk_end;
-        } else {
-            chunks.push(&buffer[next_chunk_start..]);
-            break;
-        }
+        let approximate_chunk_end = (next_chunk_start + approximate_chunk_size).min(buffer.len());
+        let chunk_end = find_start_of_next_row(buffer, approximate_chunk_end);
+        chunks.push(&buffer[next_chunk_start..chunk_end]);
+        next_chunk_start = chunk_end;
     }
-
     chunks
 }
 
@@ -242,6 +236,14 @@ fn find_end_of_quoted_field(buffer: &[u8], start: usize) -> usize {
         }
     }
     buffer.len()
+}
+
+fn find_start_of_next_row(buffer: &[u8], start: usize) -> usize {
+    if let Some(newline_offset) = buffer[start..].iter().position(|&c| c == b'\n') {
+        start + newline_offset + 1
+    } else {
+        buffer.len()
+    }
 }
 
 #[cfg(test)]
