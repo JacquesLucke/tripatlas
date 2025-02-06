@@ -41,26 +41,21 @@ pub enum PickupType {
     Unknown,
 }
 
-impl PickupType {
-    fn from_gtfs_str(s: &str) -> Self {
-        match s {
-            "0" => PickupType::Regular,
-            "1" => PickupType::NotAvailable,
-            "2" => PickupType::MustPhone,
-            "3" => PickupType::MustCoordinateWithDriver,
-            _ => PickupType::Unknown,
-        }
-    }
-}
-
 impl<'a> csvelo::ParseCsvField<'a> for PickupType {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        Ok(PickupType::from_gtfs_str(
-            std::str::from_utf8(buffer).map_err(|_| ())?,
-        ))
+        if buffer.len() != 1 {
+            return Ok(PickupType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(PickupType::Regular),
+            b'1' => Ok(PickupType::NotAvailable),
+            b'2' => Ok(PickupType::MustPhone),
+            b'3' => Ok(PickupType::MustCoordinateWithDriver),
+            _ => Ok(PickupType::Unknown),
+        }
     }
 }
 
@@ -74,26 +69,21 @@ pub enum DropOffType {
     Unknown,
 }
 
-impl DropOffType {
-    fn from_gtfs_str(s: &str) -> Self {
-        match s {
-            "0" => DropOffType::Regular,
-            "1" => DropOffType::NotAvailable,
-            "2" => DropOffType::MustPhone,
-            "3" => DropOffType::MustCoordinateWithDriver,
-            _ => DropOffType::Unknown,
-        }
-    }
-}
-
 impl<'a> csvelo::ParseCsvField<'a> for DropOffType {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        Ok(DropOffType::from_gtfs_str(
-            std::str::from_utf8(buffer).map_err(|_| ())?,
-        ))
+        if buffer.len() != 1 {
+            return Ok(DropOffType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(DropOffType::Regular),
+            b'1' => Ok(DropOffType::NotAvailable),
+            b'2' => Ok(DropOffType::MustPhone),
+            b'3' => Ok(DropOffType::MustCoordinateWithDriver),
+            _ => Ok(DropOffType::Unknown),
+        }
     }
 }
 
@@ -107,26 +97,21 @@ pub enum ContinuousPickupType {
     Unknown,
 }
 
-impl ContinuousPickupType {
-    fn from_gtfs_str(s: &str) -> Self {
-        match s {
-            "0" => ContinuousPickupType::Regular,
-            "1" => ContinuousPickupType::NotAvailable,
-            "2" => ContinuousPickupType::MustPhone,
-            "3" => ContinuousPickupType::MustCoordinateWithDriver,
-            _ => ContinuousPickupType::Unknown,
-        }
-    }
-}
-
 impl<'a> csvelo::ParseCsvField<'a> for ContinuousPickupType {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        Ok(ContinuousPickupType::from_gtfs_str(
-            std::str::from_utf8(buffer).map_err(|_| ())?,
-        ))
+        if buffer.len() != 1 {
+            return Ok(ContinuousPickupType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(ContinuousPickupType::Regular),
+            b'1' => Ok(ContinuousPickupType::NotAvailable),
+            b'2' => Ok(ContinuousPickupType::MustPhone),
+            b'3' => Ok(ContinuousPickupType::MustCoordinateWithDriver),
+            _ => Ok(ContinuousPickupType::Unknown),
+        }
     }
 }
 
@@ -140,26 +125,21 @@ pub enum ContinuousDropOffType {
     Unknown,
 }
 
-impl ContinuousDropOffType {
-    fn from_gtfs_str(s: &str) -> Self {
-        match s {
-            "0" => ContinuousDropOffType::Regular,
-            "1" => ContinuousDropOffType::NotAvailable,
-            "2" => ContinuousDropOffType::MustPhone,
-            "3" => ContinuousDropOffType::MustCoordinateWithDriver,
-            _ => ContinuousDropOffType::Unknown,
-        }
-    }
-}
-
 impl<'a> csvelo::ParseCsvField<'a> for ContinuousDropOffType {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        Ok(ContinuousDropOffType::from_gtfs_str(
-            std::str::from_utf8(buffer).map_err(|_| ())?,
-        ))
+        if buffer.len() != 1 {
+            return Ok(ContinuousDropOffType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(ContinuousDropOffType::Regular),
+            b'1' => Ok(ContinuousDropOffType::NotAvailable),
+            b'2' => Ok(ContinuousDropOffType::MustPhone),
+            b'3' => Ok(ContinuousDropOffType::MustCoordinateWithDriver),
+            _ => Ok(ContinuousDropOffType::Unknown),
+        }
     }
 }
 
@@ -171,24 +151,19 @@ pub enum TimePointType {
     Unknown,
 }
 
-impl TimePointType {
-    fn from_gtfs_str(s: &str) -> Self {
-        match s {
-            "0" => TimePointType::Approximate,
-            "1" => TimePointType::Exact,
-            _ => TimePointType::Unknown,
-        }
-    }
-}
-
 impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a,
     {
-        Ok(TimePointType::from_gtfs_str(
-            std::str::from_utf8(buffer).map_err(|_| ())?,
-        ))
+        if buffer.len() != 1 {
+            return Ok(TimePointType::Unknown);
+        }
+        match buffer[0] {
+            b'0' => Ok(TimePointType::Approximate),
+            b'1' => Ok(TimePointType::Exact),
+            _ => Ok(TimePointType::Unknown),
+        }
     }
 }
 
