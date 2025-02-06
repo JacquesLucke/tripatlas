@@ -35,9 +35,24 @@ pub fn split_header_and_data(buffer: &[u8]) -> CsvBufferSections {
     }
 }
 
-pub fn split_csv_buffer_into_line_aligned_chunks(buffer: &[u8]) -> Vec<&[u8]> {
+pub fn split_csv_buffer_into_line_aligned_chunks(
+    buffer: &[u8],
+    approximate_chunk_size: usize,
+) -> Vec<&[u8]> {
     let mut chunks = vec![];
-    chunks.push(buffer);
+    let mut next_chunk_start = 0;
+    while next_chunk_start < buffer.len() {
+        let chunk_end = (next_chunk_start + approximate_chunk_size).min(buffer.len());
+        if let Some(newline_offset) = buffer[chunk_end..].iter().position(|&c| c == b'\n') {
+            let chunk_end = chunk_end + newline_offset + 1;
+            chunks.push(&buffer[next_chunk_start..chunk_end]);
+            next_chunk_start = chunk_end;
+        } else {
+            chunks.push(&buffer[next_chunk_start..]);
+            break;
+        }
+    }
+
     chunks
 }
 

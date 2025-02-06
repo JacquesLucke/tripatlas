@@ -199,7 +199,8 @@ fn parse_stop_times(buffer: &[u8]) -> anyhow::Result<IndexedGtfsStopTimes> {
     let column_titles = csv_parse::parse_header_row_str(sections.header)?;
     let header = parse_stop_times_header(&column_titles)?;
 
-    let data_chunks = csv_parse::split_csv_buffer_into_line_aligned_chunks(sections.data);
+    let data_chunks =
+        csv_parse::split_csv_buffer_into_line_aligned_chunks(sections.data, 256 * 1024);
     let mut parsed_chunks = vec![];
     for chunk in data_chunks {
         let rows = csv_parse::CsvRows::from_buffer(chunk);
