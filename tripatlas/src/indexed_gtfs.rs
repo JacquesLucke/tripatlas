@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use csvelo::CSVParser;
 use std::{fmt::Debug, path::Path, time::Instant};
 
