@@ -387,4 +387,31 @@ mod tests {
             assert_eq!(csv.row(5).column(1).unwrap(), b"2");
         }
     }
+
+    #[test]
+    fn test_split_csv_buffer_into_line_aligned_chunks() {
+        let buffer = indoc! {r#"
+            0,1,2,3
+            ,,,
+            4,5,6,7
+        "#};
+        {
+            let chunks = split_csv_buffer_into_line_aligned_chunks(buffer.as_bytes(), 0);
+            assert_eq!(chunks.len(), 3);
+            assert_eq!(chunks[0], b"0,1,2,3\n");
+            assert_eq!(chunks[1], b",,,\n");
+            assert_eq!(chunks[2], b"4,5,6,7\n");
+        }
+        {
+            let chunks = split_csv_buffer_into_line_aligned_chunks(buffer.as_bytes(), 11);
+            assert_eq!(chunks.len(), 2);
+            assert_eq!(chunks[0], b"0,1,2,3\n,,,\n");
+            assert_eq!(chunks[1], b"4,5,6,7\n");
+        }
+        {
+            let chunks = split_csv_buffer_into_line_aligned_chunks(buffer.as_bytes(), 1000);
+            assert_eq!(chunks.len(), 1);
+            assert_eq!(chunks[0], b"0,1,2,3\n,,,\n4,5,6,7\n");
+        }
+    }
 }
