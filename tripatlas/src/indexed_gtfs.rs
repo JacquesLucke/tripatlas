@@ -111,6 +111,19 @@ pub struct Agencies<'a> {
     pub agency_email: Option<Vec<&'a str>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct FeedInfos<'a> {
+    pub feed_publisher_name: Vec<&'a str>,
+    pub feed_publisher_url: Vec<&'a str>,
+    pub feed_lang: Vec<&'a str>,
+    pub default_lang: Option<Vec<&'a str>>,
+    pub feed_start_date: Option<Vec<Date>>,
+    pub feed_end_date: Option<Vec<Date>>,
+    pub feed_version: Option<Vec<&'a str>>,
+    pub feed_contact_email: Option<Vec<&'a str>>,
+    pub feed_contact_url: Option<Vec<&'a str>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -664,6 +677,22 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let feed_infos_timer = Instant::now();
+        let feed_infos_path = gtfs_dir.join("feed_info.txt");
+        let feed_infos_file = std::fs::File::open(feed_infos_path).unwrap();
+        let feed_infos_mmap = unsafe { memmap2::Mmap::map(&feed_infos_file) }.unwrap();
+        let feed_infos = parse_feed_infos(&feed_infos_mmap[..]).unwrap();
+        println!(
+            "Feed Infos: {:?}, found: {}",
+            feed_infos_timer.elapsed(),
+            feed_infos
+                .feed_publisher_name
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -692,4 +721,8 @@ fn parse_calendar_dates<'a>(buffer: &'a [u8]) -> Result<CalenderDates<'a>, ()> {
 
 fn parse_agencies<'a>(buffer: &'a [u8]) -> Result<Agencies<'a>, ()> {
     Agencies::from_csv_buffer(&buffer)
+}
+
+fn parse_feed_infos<'a>(buffer: &'a [u8]) -> Result<FeedInfos<'a>, ()> {
+    FeedInfos::from_csv_buffer(&buffer)
 }
