@@ -93,7 +93,7 @@ pub struct Calendar<'a> {
 }
 
 #[derive(CSVParser, Debug, Clone, Default)]
-pub struct CalenderDates<'a> {
+pub struct CalendarDates<'a> {
     pub service_id: Option<Vec<&'a str>>,
     pub date: Option<Vec<Date>>,
     pub exception_type: Option<Vec<ExceptionType>>,
@@ -608,15 +608,11 @@ pub fn parse_performance_test() {
         let stop_times_path = gtfs_dir.join("stop_times.txt");
         let stop_times_file = std::fs::File::open(stop_times_path).unwrap();
         let stop_times_mmap = unsafe { memmap2::Mmap::map(&stop_times_file) }.unwrap();
-        let stop_times = parse_stop_times(&stop_times_mmap[..]).unwrap();
+        let (_stop_times, records_num) = StopTimes::from_csv_buffer(&stop_times_mmap[..]).unwrap();
         println!(
             "Stop Times: {:?}, found: {}",
             stop_times_timer.elapsed(),
-            stop_times
-                .stop_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
     {
@@ -624,15 +620,11 @@ pub fn parse_performance_test() {
         let stops_path = gtfs_dir.join("stops.txt");
         let stops_file = std::fs::File::open(stops_path).unwrap();
         let stops_mmap = unsafe { memmap2::Mmap::map(&stops_file) }.unwrap();
-        let stops = parse_stops(&stops_mmap[..]).unwrap();
+        let (_stops, records_num) = Stops::from_csv_buffer(&stops_mmap[..]).unwrap();
         println!(
             "Stop Times: {:?}, found: {}",
             stops_timer.elapsed(),
-            stops
-                .stop_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
     {
@@ -640,15 +632,11 @@ pub fn parse_performance_test() {
         let trips_path = gtfs_dir.join("trips.txt");
         let trips_file = std::fs::File::open(trips_path).unwrap();
         let trips_mmap = unsafe { memmap2::Mmap::map(&trips_file) }.unwrap();
-        let trips = parse_trips(&trips_mmap[..]).unwrap();
+        let (_trips, records_num) = Trips::from_csv_buffer(&trips_mmap[..]).unwrap();
         println!(
             "Trips: {:?}, found: {}",
             trips_timer.elapsed(),
-            trips
-                .trip_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -657,15 +645,11 @@ pub fn parse_performance_test() {
         let routes_path = gtfs_dir.join("routes.txt");
         let routes_file = std::fs::File::open(routes_path).unwrap();
         let routes_mmap = unsafe { memmap2::Mmap::map(&routes_file) }.unwrap();
-        let routes = parse_routes(&routes_mmap[..]).unwrap();
+        let (_routes, records_num) = Routes::from_csv_buffer(&routes_mmap[..]).unwrap();
         println!(
             "Routes: {:?}, found: {}",
             routes_timer.elapsed(),
-            routes
-                .route_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -674,15 +658,11 @@ pub fn parse_performance_test() {
         let calendar_path = gtfs_dir.join("calendar.txt");
         let calendar_file = std::fs::File::open(calendar_path).unwrap();
         let calendar_mmap = unsafe { memmap2::Mmap::map(&calendar_file) }.unwrap();
-        let calendar = parse_calendar(&calendar_mmap[..]).unwrap();
+        let (_calendar, records_num) = Calendar::from_csv_buffer(&calendar_mmap[..]).unwrap();
         println!(
             "Calendar: {:?}, found: {}",
             calendar_timer.elapsed(),
-            calendar
-                .service_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -691,15 +671,12 @@ pub fn parse_performance_test() {
         let calendar_dates_path = gtfs_dir.join("calendar_dates.txt");
         let calendar_dates_file = std::fs::File::open(calendar_dates_path).unwrap();
         let calendar_dates_mmap = unsafe { memmap2::Mmap::map(&calendar_dates_file) }.unwrap();
-        let calendar_dates = parse_calendar_dates(&calendar_dates_mmap[..]).unwrap();
+        let (_calendar_dates, records_num) =
+            CalendarDates::from_csv_buffer(&calendar_dates_mmap[..]).unwrap();
         println!(
             "Calendar Dates: {:?}, found: {}",
             calendar_dates_timer.elapsed(),
-            calendar_dates
-                .service_id
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -708,15 +685,11 @@ pub fn parse_performance_test() {
         let agencies_path = gtfs_dir.join("agency.txt");
         let agencies_file = std::fs::File::open(agencies_path).unwrap();
         let agencies_mmap = unsafe { memmap2::Mmap::map(&agencies_file) }.unwrap();
-        let agencies = parse_agencies(&agencies_mmap[..]).unwrap();
+        let (_agencies, records_num) = Agencies::from_csv_buffer(&agencies_mmap[..]).unwrap();
         println!(
             "Agencies: {:?}, found: {}",
             agencies_timer.elapsed(),
-            agencies
-                .agency_name
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -725,15 +698,11 @@ pub fn parse_performance_test() {
         let feed_infos_path = gtfs_dir.join("feed_info.txt");
         let feed_infos_file = std::fs::File::open(feed_infos_path).unwrap();
         let feed_infos_mmap = unsafe { memmap2::Mmap::map(&feed_infos_file) }.unwrap();
-        let feed_infos = parse_feed_infos(&feed_infos_mmap[..]).unwrap();
+        let (_feed_infos, records_num) = FeedInfos::from_csv_buffer(&feed_infos_mmap[..]).unwrap();
         println!(
             "Feed Infos: {:?}, found: {}",
             feed_infos_timer.elapsed(),
-            feed_infos
-                .feed_publisher_name
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
 
@@ -742,51 +711,12 @@ pub fn parse_performance_test() {
         let attributions_path = gtfs_dir.join("attributions.txt");
         let attributions_file = std::fs::File::open(attributions_path).unwrap();
         let attributions_mmap = unsafe { memmap2::Mmap::map(&attributions_file) }.unwrap();
-        let attributions = parse_attributions(&attributions_mmap[..]).unwrap();
+        let (_attributions, records_num) =
+            Attributions::from_csv_buffer(&attributions_mmap[..]).unwrap();
         println!(
             "Attributions: {:?}, found: {}",
             attributions_timer.elapsed(),
-            attributions
-                .organization_name
-                .unwrap()
-                .len()
-                .to_formatted_string(&num_format::Locale::en)
+            records_num.to_formatted_string(&num_format::Locale::en)
         );
     }
-}
-
-fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
-    StopTimes::from_csv_buffer(&buffer)
-}
-
-fn parse_stops<'a>(buffer: &'a [u8]) -> Result<Stops<'a>, ()> {
-    Stops::from_csv_buffer(&buffer)
-}
-
-fn parse_trips<'a>(buffer: &'a [u8]) -> Result<Trips<'a>, ()> {
-    Trips::from_csv_buffer(&buffer)
-}
-
-fn parse_routes<'a>(buffer: &'a [u8]) -> Result<Routes<'a>, ()> {
-    Routes::from_csv_buffer(&buffer)
-}
-
-fn parse_calendar<'a>(buffer: &'a [u8]) -> Result<Calendar<'a>, ()> {
-    Calendar::from_csv_buffer(&buffer)
-}
-
-fn parse_calendar_dates<'a>(buffer: &'a [u8]) -> Result<CalenderDates<'a>, ()> {
-    CalenderDates::from_csv_buffer(&buffer)
-}
-
-fn parse_agencies<'a>(buffer: &'a [u8]) -> Result<Agencies<'a>, ()> {
-    Agencies::from_csv_buffer(&buffer)
-}
-
-fn parse_feed_infos<'a>(buffer: &'a [u8]) -> Result<FeedInfos<'a>, ()> {
-    FeedInfos::from_csv_buffer(&buffer)
-}
-
-fn parse_attributions<'a>(buffer: &'a [u8]) -> Result<Attributions<'a>, ()> {
-    Attributions::from_csv_buffer(&buffer)
 }

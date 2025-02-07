@@ -209,16 +209,25 @@ fn generate_full_parse_function(source_info: &SourceInfo) -> proc_macro2::TokenS
     let buffer_lifetimes_bound = &source_info.buffer_lifetimes_bound;
     quote! {
         impl #impl_generics #main_name #ty_generics #where_clause {
-            fn from_csv_buffer<'buffer>(buffer: &'buffer [u8])  -> std::result::Result<Self, ()> #buffer_lifetimes_bound {
+            fn from_csv_buffer<'buffer>(buffer: &'buffer [u8])  -> std::result::Result<(Self, usize), ()> #buffer_lifetimes_bound {
                 let sections = csvelo::split_header_and_data(buffer);
                 let header = csvelo::parse_header(sections.header);
                 let header = #header_name::from_header_chunk(header)?;
                 let data_chunks = csvelo::split_csv_buffer_into_record_aligned_chunks(sections.data, 256 * 1024);
                 let parsed_chunks = data_chunks.par_iter().map(|chunk| {
                     let records = csvelo::CsvRecords::from_buffer(chunk);
-                    #main_name::parse_csv_chunk(&header, &records)
+                    let size = records.len();
+                    match #main_name::parse_csv_chunk(&header, &records) {
+                        Ok(parsed_chunk) => Ok((parsed_chunk, size)),
+                        Err(err) => Err(err),
+                    }
                 }).collect::<std::result::Result<Vec<_>, _>>()?;
-                #main_name::from_csv_parse_chunks(&header, parsed_chunks)
+                let records_num = parsed_chunks.iter().map(|(_, size)| *size).sum::<usize>();
+                let parsed_chunks = parsed_chunks.into_iter().map(|(chunk, _)| chunk).collect();
+                match #main_name::from_csv_parse_chunks(&header, parsed_chunks) {
+                    Ok(parsed) => Ok((parsed, records_num)),
+                    Err(err) => Err(err),
+                }
             }
         }
     }
