@@ -6,7 +6,6 @@ use syn::{parse_macro_input, DeriveInput, GenericParam, Ident, Lifetime};
 ///
 /// The struct is expected to have fields of the type `Option<Vec<T>>` whereby `T` has
 /// to implement the `ParseCsvField` trait.
-/// ```
 #[proc_macro_derive(CSVParser)]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
