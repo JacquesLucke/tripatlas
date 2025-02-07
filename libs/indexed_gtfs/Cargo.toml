@@ -1,0 +1,8 @@
+[package]
+name = "indexed_gtfs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+csvelo = { path = "../csvelo" }
+rayon = "1.10.0"

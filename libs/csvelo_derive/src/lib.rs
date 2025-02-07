@@ -208,7 +208,7 @@ fn generate_full_parse_function(source_info: &SourceInfo) -> proc_macro2::TokenS
     let buffer_lifetimes_bound = &source_info.buffer_lifetimes_bound;
     quote! {
         impl #impl_generics #main_name #ty_generics #where_clause {
-            fn from_csv_buffer<'buffer>(buffer: &'buffer [u8])  -> std::result::Result<(Self, usize), ()> #buffer_lifetimes_bound {
+            pub fn from_csv_buffer<'buffer>(buffer: &'buffer [u8])  -> std::result::Result<(Self, usize), ()> #buffer_lifetimes_bound {
                 let sections = csvelo::split_header_and_data(buffer);
                 let header = csvelo::parse_header(sections.header);
                 let header = #header_name::from_header_chunk(header)?;

@@ -21,6 +21,7 @@ rayon = "1.10.0"
 csvelo = { path = "../libs/csvelo" }
 memmap2 = "0.9.5"
 num-format = "0.4.4"
+indexed_gtfs = { path = "../libs/indexed_gtfs" }
 
 [build-dependencies]
 duct = "0.13.7"

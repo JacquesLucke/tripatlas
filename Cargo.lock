@@ -1176,6 +1176,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexed_gtfs"
+version = "0.1.0"
+dependencies = [
+ "csvelo",
+ "rayon",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2248,6 +2256,7 @@ dependencies = [
  "csvelo",
  "duct",
  "include_dir",
+ "indexed_gtfs",
  "indoc",
  "memmap2",
  "mime_guess",
