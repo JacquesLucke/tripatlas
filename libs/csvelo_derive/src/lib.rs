@@ -191,6 +191,7 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
                     s.spawn(|_| {
                         let mut value_slices = vec![];
                         for chunk in &chunks {
+                            // TODO: Need to handle the case when there was an error in some chunk.
                             value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
                         }
                         #name = csvelo::flatten_slices(&value_slices);

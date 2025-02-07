@@ -124,6 +124,21 @@ pub struct FeedInfos<'a> {
     pub feed_contact_url: Option<Vec<&'a str>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Attributions<'a> {
+    attribution_id: Option<Vec<&'a str>>,
+    agency_id: Option<Vec<&'a str>>,
+    route_id: Option<Vec<&'a str>>,
+    trip_id: Option<Vec<&'a str>>,
+    organization_name: Vec<&'a str>,
+    is_producer: Option<Vec<YesOrNo>>,
+    is_operator: Option<Vec<YesOrNo>>,
+    is_authority: Option<Vec<YesOrNo>>,
+    attribution_url: Option<Vec<&'a str>>,
+    attribution_email: Option<Vec<&'a str>>,
+    attribution_phone: Option<Vec<&'a str>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -497,6 +512,26 @@ impl<'a> csvelo::ParseCsvField<'a> for ExceptionType {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum YesOrNo {
+    Yes,
+    No,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for YesOrNo {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"" | b"0" => Ok(YesOrNo::No),
+            b"1" => Ok(YesOrNo::Yes),
+            _ => Ok(YesOrNo::Unknown),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -693,6 +728,24 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let attributions_timer = Instant::now();
+        let attributions_path = gtfs_dir.join("attributions.txt");
+        let attributions_file = std::fs::File::open(attributions_path).unwrap();
+        let attributions_mmap = unsafe { memmap2::Mmap::map(&attributions_file) }.unwrap();
+        let attributions = parse_attributions(&attributions_mmap[..]).unwrap();
+        println!(
+            "Attributions: {:?}, found: {}",
+            attributions_timer.elapsed(),
+            attributions
+                .organization_name
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+
+        println!("{:#?}", attributions);
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -725,4 +778,8 @@ fn parse_agencies<'a>(buffer: &'a [u8]) -> Result<Agencies<'a>, ()> {
 
 fn parse_feed_infos<'a>(buffer: &'a [u8]) -> Result<FeedInfos<'a>, ()> {
     FeedInfos::from_csv_buffer(&buffer)
+}
+
+fn parse_attributions<'a>(buffer: &'a [u8]) -> Result<Attributions<'a>, ()> {
+    Attributions::from_csv_buffer(&buffer)
 }
