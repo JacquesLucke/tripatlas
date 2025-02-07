@@ -1,6 +1,6 @@
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, GenericParam, Ident, Lifetime, Type};
+use syn::{parse_macro_input, DeriveInput, GenericParam, Ident, Lifetime};
 
 /// Derives a CSV parser for a struct.
 ///
@@ -84,17 +84,6 @@ fn parse_source_info(input: &DeriveInput) -> Result<SourceInfo, ()> {
         input,
         buffer_lifetimes_bound: buffer_lifetimes_bound,
     })
-}
-
-fn get_first_path_segment_with_name<'a>(
-    ty: &'a syn::Type,
-    name: &str,
-) -> Option<&'a syn::PathSegment> {
-    if let Type::Path(path_ty) = ty {
-        path_ty.path.segments.iter().find(|s| s.ident == name)
-    } else {
-        None
-    }
 }
 
 fn generate_header_struct(source_info: &SourceInfo) -> proc_macro2::TokenStream {
