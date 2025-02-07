@@ -168,7 +168,7 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
     let setup_parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
         quote! {
-            let mut #name = vec![];
+            let mut #name = None;
         }
     });
     let process_parts = source_info.csv_struct_fields.iter().map(|f| {
@@ -178,10 +178,14 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
                 s.spawn(|_| {
                     let mut value_slices = vec![];
                     for chunk in &chunks {
-                        // TODO: Need to handle the case when there was an error in some chunk.
-                        value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
+                        if let Some(chunk) = chunk.#name.as_ref() {
+                            value_slices.push(chunk.as_slice());
+                        }
+                        else {
+                            return;
+                        }
                     }
-                    #name = csvelo::flatten_slices(&value_slices);
+                    #name = Some(csvelo::flatten_slices(&value_slices));
                 });
             }
         }
@@ -189,7 +193,7 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
     let output_parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
         quote! {
-            #name: if let Some(_) = header.#name { Some(#name) } else { None }
+            #name
         }
     });
 
