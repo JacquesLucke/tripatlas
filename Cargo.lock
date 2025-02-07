@@ -1180,6 +1180,7 @@ name = "indexed_gtfs"
 version = "0.1.0"
 dependencies = [
  "csvelo",
+ "memmap2",
  "rayon",
 ]
 
