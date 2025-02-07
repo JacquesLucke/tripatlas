@@ -1,37 +1,13 @@
 pub use csvelo_derive::CSVParser;
-use rayon::prelude::*;
 use std::str::Utf8Error;
 
+mod builtin_field_parsers;
+mod flatten;
 mod parse_record;
 
 use parse_record::*;
 
-pub fn flatten_slices<T: Clone + Send + Sync>(slices: &[&[T]]) -> Vec<T> {
-    let mut offsets = vec![];
-    let mut start = 0;
-    offsets.push(start);
-    for slice in slices {
-        start += slice.len();
-        offsets.push(start);
-    }
-    let total_len = start;
-
-    let mut flattened: Vec<T> = Vec::with_capacity(total_len);
-    unsafe { flattened.set_len(total_len) };
-    let mut flattened_slice = flattened.as_mut_slice();
-    let mut dst_slices = vec![];
-    for slice in slices {
-        let (left, right) = flattened_slice.split_at_mut(slice.len());
-        dst_slices.push(left);
-        flattened_slice = right;
-    }
-
-    slices.par_iter().zip(dst_slices).for_each(|(src, dst)| {
-        dst.clone_from_slice(src);
-    });
-
-    flattened
-}
+pub use flatten::flatten_slices;
 
 #[derive(Default)]
 pub struct CsvRecords<'b> {
@@ -57,59 +33,6 @@ pub trait ParseCsvField<'a>: Sized {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
     where
         Self: 'a;
-}
-
-impl<'a> ParseCsvField<'a> for &'a str {
-    fn parse_csv_field<'b>(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        std::str::from_utf8(buffer).map_err(|_| ())
-    }
-}
-
-impl<'a> ParseCsvField<'a> for i32 {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        std::str::from_utf8(buffer)
-            .map_err(|_| ())
-            .and_then(|s| s.parse().map_err(|_| ()))
-    }
-}
-
-impl<'a> ParseCsvField<'a> for bool {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        std::str::from_utf8(buffer)
-            .map_err(|_| ())
-            .and_then(|s| s.parse().map_err(|_| ()))
-    }
-}
-
-impl<'a> ParseCsvField<'a> for u32 {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        std::str::from_utf8(buffer)
-            .map_err(|_| ())
-            .and_then(|s| s.parse().map_err(|_| ()))
-    }
-}
-
-impl<'a> ParseCsvField<'a> for String {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
-    where
-        Self: 'a,
-    {
-        std::str::from_utf8(buffer)
-            .map_err(|_| ())
-            .and_then(|s| s.parse().map_err(|_| ()))
-    }
 }
 
 impl CsvHeader<'_> {
