@@ -3,7 +3,6 @@ use clap::{Parser, Subcommand};
 
 use crate::cli_serve;
 use crate::cli_serve_dev;
-use crate::indexed_gtfs;
 
 const DEFAULT_FRONTEND_HOST: &str = "localhost";
 const DEFAULT_FRONTEND_PORT: u16 = 7654;
@@ -78,7 +77,13 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             .await?
         }
         Some(CLICommand::ParseTest {}) => {
-            indexed_gtfs::parse_performance_test();
+            let gtfs_dir = std::path::Path::new("/home/jacques/Documents/gtfs_germany");
+            let start_time = std::time::Instant::now();
+            // let buffers_ram = indexed_gtfs::GtfsBuffersRAM::from_dir(&gtfs_dir);
+            let buffers_mmap = unsafe { indexed_gtfs::GtfsBuffersMmap::from_dir(&gtfs_dir) };
+            let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers_mmap.to_slices());
+            println!("Time elapsed: {:?}", start_time.elapsed());
+            println!("{:#?}", gtfs);
         }
     }
     Ok(())
