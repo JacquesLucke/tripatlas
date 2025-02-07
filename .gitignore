@@ -2,3 +2,4 @@
 .vscode
 tarpaulin-report.html
 cobertura.xml
+gtfs_datasets
