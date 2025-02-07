@@ -4,6 +4,40 @@ use std::fmt::Debug;
 
 // GTFS Reference: https://gtfs.org/documentation/schedule/reference/
 
+pub struct Gtfs<'a> {
+    pub stop_times: File<StopTimes<'a>>,
+    pub stops: File<Stops<'a>>,
+    pub trips: File<Trips<'a>>,
+    pub routes: File<Routes<'a>>,
+    pub calendar: File<Calendar<'a>>,
+    pub calendar_dates: File<CalendarDates<'a>>,
+    pub agencies: File<Agencies<'a>>,
+    pub feed_infos: File<FeedInfos<'a>>,
+    pub attributions: File<Attributions<'a>>,
+}
+
+impl Debug for Gtfs<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Gtfs")
+            .field("stop_times", &self.stop_times.len)
+            .field("stops", &self.stops.len)
+            .field("trips", &self.trips.len)
+            .field("routes", &self.routes.len)
+            .field("calendar", &self.calendar.len)
+            .field("calendar_dates", &self.calendar_dates.len)
+            .field("agencies", &self.agencies.len)
+            .field("feed_infos", &self.feed_infos.len)
+            .field("attributions", &self.attributions.len)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+pub struct File<T> {
+    pub len: usize,
+    pub data: Option<T>,
+}
+
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct StopTimes<'a> {
     pub trip_id: Option<Vec<&'a str>>,
