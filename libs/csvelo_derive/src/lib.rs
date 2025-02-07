@@ -42,7 +42,6 @@ struct SourceInfo<'a> {
 #[derive(Debug)]
 struct ColumnFieldInfo {
     name: Ident,
-    optional: bool,
 }
 
 fn parse_source_info(input: &DeriveInput) -> Result<SourceInfo, ()> {
@@ -50,10 +49,8 @@ fn parse_source_info(input: &DeriveInput) -> Result<SourceInfo, ()> {
     if let syn::Data::Struct(ref data) = input.data {
         if let syn::Fields::Named(ref fields) = data.fields {
             for field in fields.named.iter() {
-                let option_seg = get_first_path_segment_with_name(&field.ty, "Option");
                 csv_struct_fields.push(ColumnFieldInfo {
                     name: field.ident.clone().ok_or(())?,
-                    optional: option_seg.is_some(),
                 });
             }
         } else {
@@ -103,14 +100,8 @@ fn get_first_path_segment_with_name<'a>(
 fn generate_header_struct(source_info: &SourceInfo) -> proc_macro2::TokenStream {
     let parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
-        if f.optional {
-            quote! {
-                #name: Option<usize>
-            }
-        } else {
-            quote! {
-                #name: usize
-            }
+        quote! {
+            #name: Option<usize>
         }
     });
     let header_name = &source_info.header_name;
@@ -125,14 +116,8 @@ fn generate_header_parser_function(source_info: &SourceInfo) -> proc_macro2::Tok
     let header_name = &source_info.header_name;
     let parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
-        if f.optional {
-            quote! {
-                #name: header.get_column_index(stringify!(#name))
-            }
-        } else {
-            quote! {
-                #name: header.get_column_index(stringify!(#name)).ok_or(())?
-            }
+        quote! {
+            #name: header.get_column_index(stringify!(#name))
         }
     });
     quote! {
@@ -151,7 +136,6 @@ fn generate_chunk_parsing_function(source_info: &SourceInfo) -> proc_macro2::Tok
     let main_name = &source_info.main_name;
     let parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
-        if f.optional {
             quote! {
                 #name: if let Some(column_i) = header.#name {
                     csvelo::parse_column_value(
@@ -160,12 +144,6 @@ fn generate_chunk_parsing_function(source_info: &SourceInfo) -> proc_macro2::Tok
                     None
                 }
             }
-        } else {
-            quote! {
-                #name: csvelo::parse_column_value(
-                    records, header.#name, |buffer| Ok(csvelo::ParseCsvField::parse_csv_field(buffer)?))?
-            }
-        }
     });
     let (impl_generics, ty_generics, where_clause) = source_info.input.generics.split_for_impl();
     let buffer_lifetimes_bound = &source_info.buffer_lifetimes_bound;
@@ -195,25 +173,13 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
     });
     let process_parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
-        if f.optional {
-            quote! {
-                if let Some(_) = header.#name {
-                    s.spawn(|_| {
-                        let mut value_slices = vec![];
-                        for chunk in &chunks {
-                            // TODO: Need to handle the case when there was an error in some chunk.
-                            value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
-                        }
-                        #name = csvelo::flatten_slices(&value_slices);
-                    });
-                }
-            }
-        } else {
-            quote! {
+        quote! {
+            if let Some(_) = header.#name {
                 s.spawn(|_| {
                     let mut value_slices = vec![];
                     for chunk in &chunks {
-                        value_slices.push(chunk.#name.as_slice());
+                        // TODO: Need to handle the case when there was an error in some chunk.
+                        value_slices.push(chunk.#name.as_ref().unwrap().as_slice());
                     }
                     #name = csvelo::flatten_slices(&value_slices);
                 });
@@ -222,14 +188,8 @@ fn generate_reduce_function(source_info: &SourceInfo) -> proc_macro2::TokenStrea
     });
     let output_parts = source_info.csv_struct_fields.iter().map(|f| {
         let name = &f.name;
-        if f.optional {
-            quote! {
-                #name: if let Some(_) = header.#name { Some(#name) } else { None }
-            }
-        } else {
-            quote! {
-                #name
-            }
+        quote! {
+            #name: if let Some(_) = header.#name { Some(#name) } else { None }
         }
     });
 
