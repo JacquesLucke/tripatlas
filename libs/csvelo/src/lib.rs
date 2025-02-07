@@ -9,19 +9,19 @@ mod records;
 
 use parse_record::*;
 
-pub struct CsvBufferSections<'a> {
-    pub header: &'a [u8],
-    pub data: &'a [u8],
+pub struct CsvBufferSections<'buf> {
+    pub header: &'buf [u8],
+    pub data: &'buf [u8],
 }
 
-pub struct CsvHeader<'a> {
-    pub column_titles: Vec<&'a [u8]>,
+pub struct CsvHeader<'buf> {
+    pub column_titles: Vec<&'buf [u8]>,
 }
 
-pub trait ParseCsvField<'a>: Sized {
-    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+pub trait ParseCsvField<'buf>: Sized {
+    fn parse_csv_field(buffer: &'buf [u8]) -> std::result::Result<Self, ()>
     where
-        Self: 'a;
+        Self: 'buf;
 }
 
 impl CsvHeader<'_> {
@@ -71,10 +71,10 @@ pub fn split_csv_buffer_into_record_aligned_chunks(
     chunks
 }
 
-pub fn parse_column_value<'a, T>(
-    records: &CsvRecords<'a>,
+pub fn parse_column_value<'buf, T>(
+    records: &CsvRecords<'buf>,
     column_i: usize,
-    parse_field: impl Fn(&'a [u8]) -> std::result::Result<T, ()>,
+    parse_field: impl Fn(&'buf [u8]) -> std::result::Result<T, ()>,
 ) -> std::result::Result<Vec<T>, ()> {
     let mut data = vec![];
     data.reserve(records.len());

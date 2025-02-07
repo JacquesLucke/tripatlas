@@ -1,21 +1,18 @@
 /// A (part) of a CSV file parsed into records and their fields.
 /// One can iterate over the individual records and access the fields as `&[u8]` slices.
-///
-/// 'a is the lifetime of the parsed buffer. The fields still reference the original buffer
-/// to avoid unnecessary copies.
 #[derive(Default)]
-pub struct CsvRecords<'a> {
+pub struct CsvRecords<'buf> {
     /// An offsets array where consecutive values specify a range of fields in the `fields` array.
     /// The first value is 0 and the last value is the length of the `fields` array.
     /// This is one longer than the number of records.
     offsets: Vec<usize>,
     /// The fields of each record in a flat vector. This is cheaper than having a vector of vectors.
-    fields: Vec<&'a [u8]>,
+    fields: Vec<&'buf [u8]>,
 }
 
-impl<'a> CsvRecords<'a> {
+impl<'buf> CsvRecords<'buf> {
     /// Splits the given buffer into records and their fields.
-    pub fn from_buffer(buffer: &'a [u8]) -> Self {
+    pub fn from_buffer(buffer: &'buf [u8]) -> Self {
         let mut offsets = vec![];
         let mut fields = vec![];
 
@@ -29,7 +26,7 @@ impl<'a> CsvRecords<'a> {
     }
 
     /// Get an iterator over all the records.
-    pub fn iter<'r>(&'r self) -> CsvRecordsIter<'r, 'a> {
+    pub fn iter<'rec>(&'rec self) -> CsvRecordsIter<'rec, 'buf> {
         CsvRecordsIter {
             records: self,
             i: 0,
@@ -42,7 +39,7 @@ impl<'a> CsvRecords<'a> {
     }
 
     /// Get a specific record by its index. This function panics if the index is out of bounds.
-    pub fn record<'r>(&'r self, i: usize) -> CsvRecord<'r, 'a> {
+    pub fn record<'rec>(&'rec self, i: usize) -> CsvRecord<'rec, 'buf> {
         let start = self.offsets[i];
         let end = self.offsets[i + 1];
         CsvRecord {
@@ -52,30 +49,30 @@ impl<'a> CsvRecords<'a> {
 }
 
 /// Contains the fields of an individual record (i.e. a line/row).
-pub struct CsvRecord<'r, 'a> {
-    pub fields: &'r [&'a [u8]],
+pub struct CsvRecord<'rec, 'buf> {
+    pub fields: &'rec [&'buf [u8]],
 }
 
-impl<'r, 'a> CsvRecord<'r, 'a> {
+impl<'rec, 'buf> CsvRecord<'rec, 'buf> {
     /// Get the number of fields in this record.
     pub fn len(&self) -> usize {
         self.fields.len()
     }
 
     /// Get the value for a specific column or None if the index is out of bounds.
-    pub fn column(&self, column_i: usize) -> Option<&'a [u8]> {
+    pub fn column(&self, column_i: usize) -> Option<&'buf [u8]> {
         self.fields.get(column_i).copied()
     }
 }
 
 /// An iterator over the records of a CSV file buffer.
-pub struct CsvRecordsIter<'r, 'a> {
-    records: &'r CsvRecords<'a>,
+pub struct CsvRecordsIter<'rec, 'buf> {
+    records: &'rec CsvRecords<'buf>,
     i: usize,
 }
 
-impl<'r, 'a> Iterator for CsvRecordsIter<'r, 'a> {
-    type Item = CsvRecord<'r, 'a>;
+impl<'rec, 'buf> Iterator for CsvRecordsIter<'rec, 'buf> {
+    type Item = CsvRecord<'rec, 'buf>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.i + 1 >= self.records.offsets.len() {
