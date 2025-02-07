@@ -7,11 +7,11 @@ use std::{fmt::Debug, path::Path, time::Instant};
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct StopTimes<'a> {
-    pub trip_id: Vec<&'a str>,
-    pub stop_id: Vec<&'a str>,
-    pub stop_sequence: Vec<u32>,
-    pub arrival_time: Vec<OptionalServiceDayTime>,
-    pub departure_time: Vec<OptionalServiceDayTime>,
+    pub trip_id: Option<Vec<&'a str>>,
+    pub stop_id: Option<Vec<&'a str>>,
+    pub stop_sequence: Option<Vec<u32>>,
+    pub arrival_time: Option<Vec<OptionalServiceDayTime>>,
+    pub departure_time: Option<Vec<OptionalServiceDayTime>>,
 
     pub location_group_id: Option<Vec<&'a str>>,
     pub location_id: Option<Vec<&'a str>>,
@@ -30,9 +30,9 @@ pub struct StopTimes<'a> {
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct Stops<'a> {
-    pub stop_id: Vec<&'a str>,
+    pub stop_id: Option<Vec<&'a str>>,
     pub stop_code: Option<Vec<&'a str>>,
-    pub stop_name: Vec<&'a str>,
+    pub stop_name: Option<Vec<&'a str>>,
     pub tts_stop_name: Option<Vec<&'a str>>,
     pub stop_desc: Option<Vec<&'a str>>,
     pub stop_lat: Vec<OptionalF32>,
@@ -49,9 +49,9 @@ pub struct Stops<'a> {
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct Trips<'a> {
-    pub route_id: Vec<&'a str>,
-    pub service_id: Vec<&'a str>,
-    pub trip_id: Vec<&'a str>,
+    pub route_id: Option<Vec<&'a str>>,
+    pub service_id: Option<Vec<&'a str>>,
+    pub trip_id: Option<Vec<&'a str>>,
     pub trip_headsign: Option<Vec<&'a str>>,
     pub trip_short_name: Option<Vec<&'a str>>,
     pub direction_id: Option<Vec<DirectionId>>,
@@ -63,7 +63,7 @@ pub struct Trips<'a> {
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct Routes<'a> {
-    pub route_id: Vec<&'a str>,
+    pub route_id: Option<Vec<&'a str>>,
     pub agency_id: Option<Vec<&'a str>>,
     pub route_short_name: Option<Vec<&'a str>>,
     pub route_long_name: Option<Vec<&'a str>>,
@@ -80,30 +80,30 @@ pub struct Routes<'a> {
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct Calendar<'a> {
-    pub service_id: Vec<&'a str>,
-    pub monday: Vec<ServiceAvailable>,
-    pub tuesday: Vec<ServiceAvailable>,
-    pub wednesday: Vec<ServiceAvailable>,
-    pub thursday: Vec<ServiceAvailable>,
-    pub friday: Vec<ServiceAvailable>,
-    pub saturday: Vec<ServiceAvailable>,
-    pub sunday: Vec<ServiceAvailable>,
-    pub start_date: Vec<Date>,
-    pub end_date: Vec<Date>,
+    pub service_id: Option<Vec<&'a str>>,
+    pub monday: Option<Vec<ServiceAvailable>>,
+    pub tuesday: Option<Vec<ServiceAvailable>>,
+    pub wednesday: Option<Vec<ServiceAvailable>>,
+    pub thursday: Option<Vec<ServiceAvailable>>,
+    pub friday: Option<Vec<ServiceAvailable>>,
+    pub saturday: Option<Vec<ServiceAvailable>>,
+    pub sunday: Option<Vec<ServiceAvailable>>,
+    pub start_date: Option<Vec<Date>>,
+    pub end_date: Option<Vec<Date>>,
 }
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct CalenderDates<'a> {
-    pub service_id: Vec<&'a str>,
-    pub date: Vec<Date>,
+    pub service_id: Option<Vec<&'a str>>,
+    pub date: Option<Vec<Date>>,
     pub exception_type: Option<Vec<ExceptionType>>,
 }
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct Agencies<'a> {
     pub agency_id: Option<Vec<&'a str>>,
-    pub agency_name: Vec<&'a str>,
-    pub agency_url: Vec<&'a str>,
+    pub agency_name: Option<Vec<&'a str>>,
+    pub agency_url: Option<Vec<&'a str>>,
     pub agency_timezone: Option<Vec<&'a str>>,
     pub agency_lang: Option<Vec<&'a str>>,
     pub agency_phone: Option<Vec<&'a str>>,
@@ -113,9 +113,9 @@ pub struct Agencies<'a> {
 
 #[derive(CSVParser, Debug, Clone, Default)]
 pub struct FeedInfos<'a> {
-    pub feed_publisher_name: Vec<&'a str>,
-    pub feed_publisher_url: Vec<&'a str>,
-    pub feed_lang: Vec<&'a str>,
+    pub feed_publisher_name: Option<Vec<&'a str>>,
+    pub feed_publisher_url: Option<Vec<&'a str>>,
+    pub feed_lang: Option<Vec<&'a str>>,
     pub default_lang: Option<Vec<&'a str>>,
     pub feed_start_date: Option<Vec<Date>>,
     pub feed_end_date: Option<Vec<Date>>,
@@ -130,7 +130,7 @@ pub struct Attributions<'a> {
     agency_id: Option<Vec<&'a str>>,
     route_id: Option<Vec<&'a str>>,
     trip_id: Option<Vec<&'a str>>,
-    organization_name: Vec<&'a str>,
+    organization_name: Option<Vec<&'a str>>,
     is_producer: Option<Vec<YesOrNo>>,
     is_operator: Option<Vec<YesOrNo>>,
     is_authority: Option<Vec<YesOrNo>>,
@@ -614,6 +614,7 @@ pub fn parse_performance_test() {
             stop_times_timer.elapsed(),
             stop_times
                 .stop_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -629,6 +630,7 @@ pub fn parse_performance_test() {
             stops_timer.elapsed(),
             stops
                 .stop_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -644,6 +646,7 @@ pub fn parse_performance_test() {
             trips_timer.elapsed(),
             trips
                 .trip_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -660,6 +663,7 @@ pub fn parse_performance_test() {
             routes_timer.elapsed(),
             routes
                 .route_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -676,6 +680,7 @@ pub fn parse_performance_test() {
             calendar_timer.elapsed(),
             calendar
                 .service_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -692,6 +697,7 @@ pub fn parse_performance_test() {
             calendar_dates_timer.elapsed(),
             calendar_dates
                 .service_id
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -708,6 +714,7 @@ pub fn parse_performance_test() {
             agencies_timer.elapsed(),
             agencies
                 .agency_name
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -724,6 +731,7 @@ pub fn parse_performance_test() {
             feed_infos_timer.elapsed(),
             feed_infos
                 .feed_publisher_name
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
@@ -740,6 +748,7 @@ pub fn parse_performance_test() {
             attributions_timer.elapsed(),
             attributions
                 .organization_name
+                .unwrap()
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
