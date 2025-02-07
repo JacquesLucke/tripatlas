@@ -5,99 +5,27 @@ use rayon::prelude::*;
 #[test]
 fn test_simple() {
     #[derive(CSVParser, Debug)]
-    struct MyCsvData {
-        a: Vec<i32>,
-        b: Vec<i32>,
-        c: Option<Vec<i32>>,
-    }
-
-    let data = MyCsvData::from_csv_buffer(
-        indoc! {r#"
-            a,b,c
-            1,2,3
-            4,5,6
-        "#}
-        .as_bytes(),
-    )
-    .unwrap();
-    assert_eq!(data.a.len(), 2);
-    assert_eq!(data.b.len(), 2);
-    assert_eq!(data.c.unwrap().len(), 2);
-}
-
-#[test]
-fn test_missing_optional_column() {
-    #[derive(CSVParser, Debug)]
-    struct MyCsvData {
-        a: Vec<i32>,
-        b: Option<Vec<i32>>,
-    }
-
-    let data = MyCsvData::from_csv_buffer(
-        indoc! {r#"
-            a
-            1
-            4
-        "#}
-        .as_bytes(),
-    )
-    .unwrap();
-    assert_eq!(data.a.len(), 2);
-    assert!(data.b.is_none());
-}
-
-#[test]
-fn test_required_optional_column() {
-    #[derive(CSVParser, Debug)]
-    struct MyCsvData {
-        a: Vec<i32>,
-        c: Option<Vec<i32>>,
-    }
-
-    let data = MyCsvData::from_csv_buffer(
-        indoc! {r#"
-            c
-            2
-            5
-        "#}
-        .as_bytes(),
-    );
-    assert!(data.is_err());
-}
-
-#[test]
-fn test_extra_column() {
-    #[derive(CSVParser, Debug)]
-    struct MyCsvData {
-        a: Vec<i32>,
-    }
-
-    let data = MyCsvData::from_csv_buffer(
-        indoc! {r#"
-            q,a,b
-            0,1,2
-            0,4,5
-        "#}
-        .as_bytes(),
-    )
-    .unwrap();
-    assert_eq!(data.a.len(), 2);
-}
-
-#[test]
-fn test_with_ref() {
-    #[derive(CSVParser)]
     struct MyCsvData<'a> {
-        data: Vec<&'a str>,
+        a: Option<Vec<i32>>,
+        b: Option<Vec<f32>>,
+        c: Option<Vec<String>>,
+        d: Option<Vec<&'a str>>,
+        e: Option<Vec<i32>>,
     }
 
-    let bytes = indoc! {r#"
-        data
-        why
-        where
-    "#}
-    .as_bytes();
-
-    let data = MyCsvData::from_csv_buffer(bytes).unwrap();
-    assert_eq!(data.data.len(), 2);
+    let (data, records_num) = MyCsvData::from_csv_buffer(
+        indoc! {r#"
+            a,b,c,d,z
+            1,2,3,4,5
+            10,20,30,40,50
+        "#}
+        .as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(records_num, 2);
+    assert_eq!(data.a.unwrap(), vec![1, 10]);
+    assert_eq!(data.b.unwrap(), vec![2.0, 20.0]);
+    assert_eq!(data.c.unwrap(), vec!["3".to_string(), "30".to_string()]);
+    assert_eq!(data.d.unwrap(), vec!["4", "40"]);
+    assert!(data.e.is_none());
 }
