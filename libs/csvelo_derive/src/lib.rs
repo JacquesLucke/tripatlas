@@ -2,6 +2,11 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, GenericParam, Ident, Lifetime, Type};
 
+/// Derives a CSV parser for a struct.
+///
+/// The struct is expected to have fields of the type `Option<Vec<T>>` whereby `T` has
+/// to implement the `ParseCsvField` trait.
+/// ```
 #[proc_macro_derive(CSVParser)]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
@@ -16,7 +21,13 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let chunk_parsing_function = generate_chunk_parsing_function(&source_info);
     let reduced_function = generate_reduce_function(&source_info);
     let parse_function = generate_full_parse_function(&source_info);
-    let expanded = quote! { #header_struct #header_parser_function #chunk_parsing_function #reduced_function #parse_function};
+    let expanded = quote! {
+        #header_struct
+        #header_parser_function
+        #chunk_parsing_function
+        #reduced_function
+        #parse_function
+    };
     expanded.into()
 }
 
@@ -32,7 +43,6 @@ struct SourceInfo<'a> {
 struct ColumnFieldInfo {
     name: Ident,
     optional: bool,
-    // field_type_name: Ident,
 }
 
 fn parse_source_info(input: &DeriveInput) -> Result<SourceInfo, ()> {
