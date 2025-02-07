@@ -172,7 +172,7 @@ pub struct Attributions<'a> {
     attribution_phone: Option<Vec<&'a str>>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum PickupType {
     #[default]
     Regular,
@@ -197,7 +197,7 @@ impl<'a> csvelo::ParseCsvField<'a> for PickupType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum DropOffType {
     #[default]
     Regular,
@@ -222,7 +222,7 @@ impl<'a> csvelo::ParseCsvField<'a> for DropOffType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ContinuousPickupType {
     #[default]
     Regular,
@@ -247,7 +247,7 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousPickupType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ContinuousDropOffType {
     #[default]
     Regular,
@@ -272,7 +272,7 @@ impl<'a> csvelo::ParseCsvField<'a> for ContinuousDropOffType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum TimePointType {
     Approximate,
     #[default]
@@ -293,7 +293,7 @@ impl<'a> csvelo::ParseCsvField<'a> for TimePointType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum LocationType {
     #[default]
     Stop,
@@ -320,7 +320,7 @@ impl<'a> csvelo::ParseCsvField<'a> for LocationType {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum WheelchairBoarding {
     #[default]
     NoInfoOrSeeParent,
@@ -343,7 +343,7 @@ impl<'a> csvelo::ParseCsvField<'a> for WheelchairBoarding {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DirectionId {
     Outbound,
     Inbound,
@@ -363,7 +363,7 @@ impl<'a> csvelo::ParseCsvField<'a> for DirectionId {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum WheelchairAccessible {
     #[default]
     NoInfo,
@@ -386,7 +386,7 @@ impl<'a> csvelo::ParseCsvField<'a> for WheelchairAccessible {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum BikesAllowed {
     #[default]
     NoInfo,
@@ -409,7 +409,7 @@ impl<'a> csvelo::ParseCsvField<'a> for BikesAllowed {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum RouteType {
     #[default]
     Tram,
@@ -446,11 +446,11 @@ impl<'a> csvelo::ParseCsvField<'a> for RouteType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
 impl<'a> csvelo::ParseCsvField<'a> for Color {
@@ -478,7 +478,7 @@ fn hex_char_to_number(c: u8) -> u8 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ServiceAvailable {
     Yes,
     No,
@@ -498,11 +498,11 @@ impl<'a> csvelo::ParseCsvField<'a> for ServiceAvailable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Date {
-    year: u16,
-    month: u8,
-    day: u8,
+    pub year: u16,
+    pub month: u8,
+    pub day: u8,
 }
 
 impl<'a> csvelo::ParseCsvField<'a> for Date {
@@ -525,7 +525,7 @@ impl<'a> csvelo::ParseCsvField<'a> for Date {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExceptionType {
     Added,
     Removed,
@@ -545,7 +545,7 @@ impl<'a> csvelo::ParseCsvField<'a> for ExceptionType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum YesOrNo {
     Yes,
     No,
@@ -566,7 +566,7 @@ impl<'a> csvelo::ParseCsvField<'a> for YesOrNo {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct OptionalF32(Option<f32>);
+pub struct OptionalF32(pub Option<f32>);
 
 impl<'a> csvelo::ParseCsvField<'a> for OptionalF32 {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
@@ -579,13 +579,13 @@ impl<'a> csvelo::ParseCsvField<'a> for OptionalF32 {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct ServiceDayTime {
     seconds: u32,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct OptionalServiceDayTime(Option<ServiceDayTime>);
+pub struct OptionalServiceDayTime(pub Option<ServiceDayTime>);
 
 impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
     fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>

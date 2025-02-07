@@ -36,6 +36,7 @@ impl<'a> Gtfs<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct GtfsBuffers<'a> {
     pub stop_times: Option<&'a [u8]>,
     pub stops: Option<&'a [u8]>,
