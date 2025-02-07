@@ -1,24 +1,13 @@
 pub use csvelo_derive::CSVParser;
-use std::str::Utf8Error;
+pub use flatten::flatten_slices;
+pub use records::CsvRecords;
 
 mod builtin_field_parsers;
 mod flatten;
 mod parse_record;
+mod records;
 
 use parse_record::*;
-
-pub use flatten::flatten_slices;
-
-#[derive(Default)]
-pub struct CsvRecords<'b> {
-    offsets: Vec<usize>,
-    fields: Vec<&'b [u8]>,
-}
-
-pub struct CsvRecordsIter<'r, 'b> {
-    records: &'r CsvRecords<'b>,
-    i: usize,
-}
 
 pub struct CsvBufferSections<'a> {
     pub header: &'a [u8],
@@ -51,7 +40,9 @@ pub fn parse_header(header: &[u8]) -> CsvHeader {
     }
 }
 
-pub fn parse_header_record_str(header: &[u8]) -> std::result::Result<Vec<&str>, Utf8Error> {
+pub fn parse_header_record_str(
+    header: &[u8],
+) -> std::result::Result<Vec<&str>, std::str::Utf8Error> {
     let mut fields = vec![];
     parse_record_fields(header, 0, &mut fields);
     fields.iter().map(|f| std::str::from_utf8(f)).collect()
@@ -78,67 +69,6 @@ pub fn split_csv_buffer_into_record_aligned_chunks(
         next_chunk_start = chunk_end;
     }
     chunks
-}
-
-impl<'r, 'b> Iterator for CsvRecordsIter<'r, 'b> {
-    type Item = CsvRecord<'r, 'b>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i + 1 >= self.records.offsets.len() {
-            return None;
-        }
-        let record = self.records.record(self.i);
-        self.i += 1;
-        Some(record)
-    }
-}
-
-impl<'b> CsvRecords<'b> {
-    pub fn from_buffer(buffer: &'b [u8]) -> Self {
-        let mut offsets = vec![];
-        let mut fields = vec![];
-
-        offsets.push(0);
-        let mut start = 0;
-        while start < buffer.len() {
-            start = parse_record_fields(buffer, start, &mut fields);
-            offsets.push(fields.len());
-        }
-        CsvRecords { offsets, fields }
-    }
-
-    pub fn iter<'r>(&'r self) -> CsvRecordsIter<'r, 'b> {
-        CsvRecordsIter {
-            records: self,
-            i: 0,
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.offsets.len() - 1
-    }
-
-    pub fn record<'r>(&'r self, i: usize) -> CsvRecord<'r, 'b> {
-        let start = self.offsets[i];
-        let end = self.offsets[i + 1];
-        CsvRecord {
-            fields: &self.fields[start..end],
-        }
-    }
-}
-
-pub struct CsvRecord<'r, 'b> {
-    pub fields: &'r [&'b [u8]],
-}
-
-impl<'r, 'b> CsvRecord<'r, 'b> {
-    pub fn len(&self) -> usize {
-        self.fields.len()
-    }
-
-    pub fn column(&self, column_i: usize) -> Option<&'b [u8]> {
-        self.fields.get(column_i).copied()
-    }
 }
 
 pub fn parse_column_value<'a, T>(
