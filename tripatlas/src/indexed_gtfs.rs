@@ -78,6 +78,20 @@ pub struct Routes<'a> {
     pub network_id: Option<Vec<&'a str>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Calendar<'a> {
+    pub service_id: Vec<&'a str>,
+    pub monday: Vec<ServiceAvailable>,
+    pub tuesday: Vec<ServiceAvailable>,
+    pub wednesday: Vec<ServiceAvailable>,
+    pub thursday: Vec<ServiceAvailable>,
+    pub friday: Vec<ServiceAvailable>,
+    pub saturday: Vec<ServiceAvailable>,
+    pub sunday: Vec<ServiceAvailable>,
+    pub start_date: Vec<Date>,
+    pub end_date: Vec<Date>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -384,6 +398,53 @@ fn hex_char_to_number(c: u8) -> u8 {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ServiceAvailable {
+    Yes,
+    No,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for ServiceAvailable {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"1" => Ok(ServiceAvailable::Yes),
+            b"0" => Ok(ServiceAvailable::No),
+            _ => Ok(ServiceAvailable::Unknown),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Date {
+    year: u16,
+    month: u8,
+    day: u8,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for Date {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        let buffer = buffer.trim_ascii();
+        if buffer.len() != 8 {
+            return Err(());
+        }
+
+        let year = (parse_digit(buffer[0]) as u16) * 1000
+            + (parse_digit(buffer[1]) as u16) * 100
+            + (parse_digit(buffer[2]) as u16) * 10
+            + (parse_digit(buffer[3]) as u16);
+        let month = parse_digit(buffer[4]) * 10 + parse_digit(buffer[5]);
+        let day = parse_digit(buffer[6]) * 10 + parse_digit(buffer[7]);
+        Ok(Date { year, month, day })
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -419,7 +480,11 @@ impl<'a> csvelo::ParseCsvField<'a> for OptionalServiceDayTime {
 }
 
 fn parse_two_digit_int(buffer: &[u8]) -> u8 {
-    return buffer[0].wrapping_sub(b'0') * 10 + buffer[1].wrapping_sub(b'0');
+    return parse_digit(buffer[0]) * 10 + parse_digit(buffer[1]);
+}
+
+fn parse_digit(c: u8) -> u8 {
+    c.wrapping_sub(b'0')
 }
 
 fn parse_hh_mm_ss_to_seconds_fast(buffer: &[u8]) -> Result<u32, ()> {
@@ -512,6 +577,22 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let calendar_timer = Instant::now();
+        let calendar_path = gtfs_dir.join("calendar.txt");
+        let calendar_file = std::fs::File::open(calendar_path).unwrap();
+        let calendar_mmap = unsafe { memmap2::Mmap::map(&calendar_file) }.unwrap();
+        let calendar = parse_calendar(&calendar_mmap[..]).unwrap();
+        println!(
+            "Calendar: {:?}, found: {}",
+            calendar_timer.elapsed(),
+            calendar
+                .service_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -528,4 +609,8 @@ fn parse_trips<'a>(buffer: &'a [u8]) -> Result<Trips<'a>, ()> {
 
 fn parse_routes<'a>(buffer: &'a [u8]) -> Result<Routes<'a>, ()> {
     Routes::from_csv_buffer(&buffer)
+}
+
+fn parse_calendar<'a>(buffer: &'a [u8]) -> Result<Calendar<'a>, ()> {
+    Calendar::from_csv_buffer(&buffer)
 }
