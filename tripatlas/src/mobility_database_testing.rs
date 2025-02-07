@@ -1,16 +1,43 @@
+use std::path::Path;
+
 use anyhow::Result;
-use rayon::result;
-use serde::Deserialize;
-use serde_json::json;
 
 const MOBILITY_DATABASE_URL: &str = "https://api.mobilitydatabase.org/v1/";
 
 pub async fn test_loading_data(token: &str) -> Result<()> {
-    let feeds = load_all_feeds(token).await?;
-    std::fs::write(
-        "/home/jacques/Documents/feeds_test_response.json",
-        json!(feeds).to_string(),
-    )?;
+    let cache_file = "/home/jacques/Documents/feeds_test_response.json";
+    let cache_dir = Path::new("/home/jacques/Documents/gtfs_all_datasets");
+    let feeds: Vec<GtfsFeedInfo> = serde_json::from_str(&std::fs::read_to_string(cache_file)?)?;
+    for (i, feed) in feeds.iter().enumerate() {
+        if let Some(latest_dataset) = &feed.latest_dataset {
+            let gtfs_url = &latest_dataset.hosted_url;
+            let filename = gtfs_url
+                .replace(":", "_")
+                .replace("/", "_")
+                .replace("-", "_");
+            let output_path = cache_dir.join(filename);
+            println!("{} {}", i, latest_dataset.hosted_url);
+            if output_path.exists() {
+                println!("Already downloaded.");
+                continue;
+            }
+            if let Ok(res) = reqwest::get(gtfs_url).await {
+                if res.status().is_success() {
+                    if let Some(res) = res.bytes().await.ok() {
+                        let _ = std::fs::write(output_path, res);
+                        continue;
+                    }
+                }
+            }
+            println!("Failed to download.");
+        }
+    }
+
+    // let feeds = load_all_feeds(token).await?;
+    // std::fs::write(
+    //     "/home/jacques/Documents/feeds_test_response.json",
+    //     json!(feeds).to_string(),
+    // )?;
     Ok(())
 }
 

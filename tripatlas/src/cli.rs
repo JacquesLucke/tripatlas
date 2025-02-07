@@ -1,8 +1,11 @@
+use std::path::Path;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 use crate::cli_serve;
 use crate::cli_serve_dev;
+use crate::gtfs_test_loader;
 
 const DEFAULT_FRONTEND_HOST: &str = "localhost";
 const DEFAULT_FRONTEND_PORT: u16 = 7654;
@@ -29,6 +32,10 @@ enum CLICommand {
         host: String,
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
+    },
+    TestLoadDatasets {
+        #[arg(long)]
+        directory: String,
     },
     ParseTest {},
     MobilityDatabase {
@@ -81,7 +88,7 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             .await?
         }
         Some(CLICommand::ParseTest {}) => {
-            let gtfs_dir = std::path::Path::new("/home/jacques/Documents/gtfs_germany");
+            let gtfs_dir = Path::new("/home/jacques/Documents/gtfs_germany");
             let start_time = std::time::Instant::now();
             // let buffers_ram = indexed_gtfs::GtfsBuffersRAM::from_dir(&gtfs_dir);
             let buffers_mmap = unsafe { indexed_gtfs::GtfsBuffersMmap::from_dir(&gtfs_dir) };
@@ -91,6 +98,9 @@ pub async fn handle_command_line_arguments() -> Result<()> {
         }
         Some(CLICommand::MobilityDatabase { token }) => {
             crate::mobility_database_testing::test_loading_data(&token).await?;
+        }
+        Some(CLICommand::TestLoadDatasets { directory }) => {
+            gtfs_test_loader::test_loader(Path::new(&directory)).await?;
         }
     }
     Ok(())
