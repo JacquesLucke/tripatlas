@@ -31,6 +31,10 @@ enum CLICommand {
         port: u16,
     },
     ParseTest {},
+    MobilityDatabase {
+        #[arg(long)]
+        token: String,
+    },
 }
 
 pub async fn handle_command_line_arguments() -> Result<()> {
@@ -84,6 +88,9 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers_mmap.to_slices());
             println!("Time elapsed: {:?}", start_time.elapsed());
             println!("{:#?}", gtfs);
+        }
+        Some(CLICommand::MobilityDatabase { token }) => {
+            crate::mobility_database_testing::test_loading_data(&token).await?;
         }
     }
     Ok(())
