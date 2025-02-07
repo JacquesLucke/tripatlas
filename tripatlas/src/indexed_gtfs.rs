@@ -92,6 +92,13 @@ pub struct Calendar<'a> {
     pub end_date: Vec<Date>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct CalenderDates<'a> {
+    pub service_id: Vec<&'a str>,
+    pub date: Vec<Date>,
+    pub exception_type: Option<Vec<ExceptionType>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -445,6 +452,26 @@ impl<'a> csvelo::ParseCsvField<'a> for Date {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ExceptionType {
+    Added,
+    Removed,
+    Unknown,
+}
+
+impl<'a> csvelo::ParseCsvField<'a> for ExceptionType {
+    fn parse_csv_field(buffer: &'a [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'a,
+    {
+        match buffer.trim_ascii() {
+            b"1" => Ok(ExceptionType::Added),
+            b"2" => Ok(ExceptionType::Removed),
+            _ => Ok(ExceptionType::Unknown),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct OptionalF32(Option<f32>);
 
@@ -593,6 +620,22 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let calendar_dates_timer = Instant::now();
+        let calendar_dates_path = gtfs_dir.join("calendar_dates.txt");
+        let calendar_dates_file = std::fs::File::open(calendar_dates_path).unwrap();
+        let calendar_dates_mmap = unsafe { memmap2::Mmap::map(&calendar_dates_file) }.unwrap();
+        let calendar_dates = parse_calendar_dates(&calendar_dates_mmap[..]).unwrap();
+        println!(
+            "Calendar Dates: {:?}, found: {}",
+            calendar_dates_timer.elapsed(),
+            calendar_dates
+                .service_id
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -613,4 +656,8 @@ fn parse_routes<'a>(buffer: &'a [u8]) -> Result<Routes<'a>, ()> {
 
 fn parse_calendar<'a>(buffer: &'a [u8]) -> Result<Calendar<'a>, ()> {
     Calendar::from_csv_buffer(&buffer)
+}
+
+fn parse_calendar_dates<'a>(buffer: &'a [u8]) -> Result<CalenderDates<'a>, ()> {
+    CalenderDates::from_csv_buffer(&buffer)
 }
