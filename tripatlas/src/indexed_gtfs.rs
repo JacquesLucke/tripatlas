@@ -99,6 +99,18 @@ pub struct CalenderDates<'a> {
     pub exception_type: Option<Vec<ExceptionType>>,
 }
 
+#[derive(CSVParser, Debug, Clone, Default)]
+pub struct Agencies<'a> {
+    pub agency_id: Option<Vec<&'a str>>,
+    pub agency_name: Vec<&'a str>,
+    pub agency_url: Vec<&'a str>,
+    pub agency_timezone: Option<Vec<&'a str>>,
+    pub agency_lang: Option<Vec<&'a str>>,
+    pub agency_phone: Option<Vec<&'a str>>,
+    pub agency_fare_url: Option<Vec<&'a str>>,
+    pub agency_email: Option<Vec<&'a str>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum PickupType {
     #[default]
@@ -636,6 +648,22 @@ pub fn parse_performance_test() {
                 .to_formatted_string(&num_format::Locale::en)
         );
     }
+
+    {
+        let agencies_timer = Instant::now();
+        let agencies_path = gtfs_dir.join("agency.txt");
+        let agencies_file = std::fs::File::open(agencies_path).unwrap();
+        let agencies_mmap = unsafe { memmap2::Mmap::map(&agencies_file) }.unwrap();
+        let agencies = parse_agencies(&agencies_mmap[..]).unwrap();
+        println!(
+            "Agencies: {:?}, found: {}",
+            agencies_timer.elapsed(),
+            agencies
+                .agency_name
+                .len()
+                .to_formatted_string(&num_format::Locale::en)
+        );
+    }
 }
 
 fn parse_stop_times<'a>(buffer: &'a [u8]) -> Result<StopTimes<'a>, ()> {
@@ -660,4 +688,8 @@ fn parse_calendar<'a>(buffer: &'a [u8]) -> Result<Calendar<'a>, ()> {
 
 fn parse_calendar_dates<'a>(buffer: &'a [u8]) -> Result<CalenderDates<'a>, ()> {
     CalenderDates::from_csv_buffer(&buffer)
+}
+
+fn parse_agencies<'a>(buffer: &'a [u8]) -> Result<Agencies<'a>, ()> {
+    Agencies::from_csv_buffer(&buffer)
 }
