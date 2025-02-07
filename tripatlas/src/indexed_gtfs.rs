@@ -743,8 +743,6 @@ pub fn parse_performance_test() {
                 .len()
                 .to_formatted_string(&num_format::Locale::en)
         );
-
-        println!("{:#?}", attributions);
     }
 }
 
