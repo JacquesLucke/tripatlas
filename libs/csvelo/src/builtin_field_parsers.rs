@@ -35,6 +35,15 @@ impl<'buf> ParseCsvField<'buf> for &'buf str {
     }
 }
 
+impl<'buf> ParseCsvField<'buf> for &'buf [u8] {
+    fn parse_csv_field(buffer: &'buf [u8]) -> std::result::Result<Self, ()>
+    where
+        Self: 'buf,
+    {
+        Ok(buffer)
+    }
+}
+
 impl<'buf> ParseCsvField<'buf> for String {
     fn parse_csv_field(buffer: &'buf [u8]) -> std::result::Result<Self, ()>
     where
