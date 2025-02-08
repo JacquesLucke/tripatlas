@@ -33,15 +33,23 @@ enum CLICommand {
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
     },
+    DownloadMobilityDatabaseGtfs {
+        /// An access token retrieved from https://mobilitydatabase.org/ after signing in.
+        /// Note: This is *not* the refresh token, but the access token.
+        #[arg(long)]
+        access_token: String,
+        /// Directory where the downloaded GTFS .zip files will be stored.
+        #[arg(long)]
+        directory: String,
+        /// A limit on the number of GTFS datasets to download.
+        #[arg(long, default_value_t = 10)]
+        limit: usize,
+    },
     TestLoadDatasets {
         #[arg(long)]
         directory: String,
     },
     ParseTest {},
-    MobilityDatabase {
-        #[arg(long)]
-        token: String,
-    },
 }
 
 pub async fn handle_command_line_arguments() -> Result<()> {
@@ -87,6 +95,18 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             })
             .await?
         }
+        Some(CLICommand::DownloadMobilityDatabaseGtfs {
+            access_token,
+            directory,
+            limit,
+        }) => {
+            crate::mobility_database::download_mobility_database_gtfs(
+                &access_token,
+                &Path::new(&directory),
+                limit,
+            )
+            .await?;
+        }
         Some(CLICommand::ParseTest {}) => {
             let gtfs_dir = Path::new("/home/jacques/Documents/gtfs_germany");
             let start_time = std::time::Instant::now();
@@ -96,9 +116,7 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             println!("Time elapsed: {:?}", start_time.elapsed());
             println!("{:#?}", gtfs);
         }
-        Some(CLICommand::MobilityDatabase { token }) => {
-            crate::mobility_database_testing::test_loading_data(&token).await?;
-        }
+
         Some(CLICommand::TestLoadDatasets { directory }) => {
             gtfs_test_loader::test_loader(Path::new(&directory)).await?;
         }

@@ -1,6 +1,6 @@
 use num_format::ToFormattedString;
 use rand::seq::SliceRandom;
-use rayon::{prelude::*, vec};
+use rayon::prelude::*;
 use std::{
     io::Write,
     path::{Path, PathBuf},

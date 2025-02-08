@@ -4,7 +4,7 @@ mod cli;
 mod cli_serve;
 mod cli_serve_dev;
 mod gtfs_test_loader;
-mod mobility_database_testing;
+mod mobility_database;
 mod start_server;
 
 #[cfg(test)]
