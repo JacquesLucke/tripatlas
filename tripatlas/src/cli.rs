@@ -6,7 +6,6 @@ use clap::{Parser, Subcommand};
 use crate::cli_gtfs_stats;
 use crate::cli_serve;
 use crate::cli_serve_dev;
-use crate::gtfs_test_loader;
 
 const DEFAULT_FRONTEND_HOST: &str = "localhost";
 const DEFAULT_FRONTEND_PORT: u16 = 7654;
@@ -34,6 +33,7 @@ enum CLICommand {
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
     },
+    /// Download GTFS datasets from the Mobility Database.
     DownloadMobilityDatabaseGtfs {
         /// An access token retrieved from <https://mobilitydatabase.org/> after signing in.
         /// Note: This is *not* the refresh token, but the access token.
@@ -46,15 +46,12 @@ enum CLICommand {
         #[arg(long, default_value_t = 10)]
         limit: usize,
     },
+    /// Analyse one or more GTFS datasets.
     GtfsStats {
+        /// Path to GTFS dataset or directory containing GTFS datasets. A dataset can be a .zip file or a directory.
         #[arg(long)]
         path: String,
     },
-    TestLoadDatasets {
-        #[arg(long)]
-        directory: String,
-    },
-    ParseTest {},
 }
 
 pub async fn handle_command_line_arguments() -> Result<()> {
@@ -116,19 +113,6 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             let start = std::time::Instant::now();
             cli_gtfs_stats::gtfs_stats(Path::new(&path), true).await?;
             println!("Analysis took {:?}", start.elapsed());
-        }
-        Some(CLICommand::ParseTest {}) => {
-            let start_time = std::time::Instant::now();
-            let gtfs_path =
-                Path::new("/home/jacques/Documents/gtfs_all_datasets/https___files.mobilitydatabase.org_mdb_1869_mdb_1869_202502060034_mdb_1869_202502060034.zip");
-            let buffers = unsafe { indexed_gtfs::GtfsBuffers::from_zip_file_path_mmap(gtfs_path)? };
-            let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices());
-            println!("{:#?}", gtfs);
-            println!("Time elapsed: {:?}", start_time.elapsed());
-        }
-
-        Some(CLICommand::TestLoadDatasets { directory }) => {
-            gtfs_test_loader::test_loader(Path::new(&directory)).await?;
         }
     }
     Ok(())
