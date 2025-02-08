@@ -3,6 +3,7 @@ use std::path::Path;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+use crate::cli_gtfs_merge;
 use crate::cli_gtfs_stats;
 use crate::cli_serve;
 use crate::cli_serve_dev;
@@ -38,6 +39,12 @@ enum CLICommand {
         /// Path to GTFS dataset or directory containing GTFS datasets. A dataset can be a .zip file or a directory.
         #[arg(long)]
         path: String,
+    },
+    GtfsMerge {
+        #[arg(long)]
+        input: String,
+        #[arg(long)]
+        output: String,
     },
     /// Download GTFS datasets from the Mobility Database.
     GtfsDownloadMobilityDatabase {
@@ -113,6 +120,9 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             let start = std::time::Instant::now();
             cli_gtfs_stats::gtfs_stats(Path::new(&path), true).await?;
             println!("Analysis took {:?}", start.elapsed());
+        }
+        Some(CLICommand::GtfsMerge { input, output }) => {
+            cli_gtfs_merge::gtfs_merge(Path::new(&input), Path::new(&output)).await?;
         }
     }
     Ok(())

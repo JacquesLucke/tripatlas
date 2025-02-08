@@ -1,4 +1,5 @@
 use anyhow::Result;
+use byte_unit::Byte;
 use colored::Colorize;
 use futures::executor::block_on_stream;
 use genawaiter::{rc::gen, yield_};
@@ -106,7 +107,7 @@ pub async fn download_mobility_database_gtfs(
                 println!("  Saved at {:?}", output_path);
                 println!(
                     "  Size: {}",
-                    util::bytes_to_human_string(bytes.len() as u64).green()
+                    util::bytes_to_human_string(Byte::from_u64(bytes.len() as u64)).green()
                 );
                 downloaded_count += 1;
                 if downloaded_count >= limit {
