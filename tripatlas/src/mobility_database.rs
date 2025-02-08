@@ -6,6 +6,37 @@ use std::path::Path;
 
 const MOBILITY_DATABASE_URL: &str = "https://api.mobilitydatabase.org/v1/";
 
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct GtfsFeedInfo {
+    id: String,
+    data_type: String,
+    created_at: String,
+    official: Option<bool>,
+    provider: String,
+    source_info: GtfsFeedSourceInfo,
+    latest_dataset: Option<GtfsFeedLatestDataset>,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct GtfsFeedSourceInfo {
+    authentication_type: Option<i32>,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct GtfsFeedLatestDataset {
+    id: String,
+    hosted_url: String,
+    bounding_box: Option<GtfsFeedBoundingBox>,
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct GtfsFeedBoundingBox {
+    minimum_latitude: f64,
+    maximum_latitude: f64,
+    minimum_longitude: f64,
+    maximum_longitude: f64,
+}
+
 pub async fn download_mobility_database_gtfs(
     token: &str,
     out_dir: &Path,
@@ -20,8 +51,12 @@ pub async fn download_mobility_database_gtfs(
         let chunk_size = 100;
         let mut offset = 0;
         loop {
-            let Ok(feeds) = load_feeds_chunk(&token, offset, chunk_size).await else {
-                return;
+            let feeds = match load_gtfs_feeds_chunk(&token, offset, chunk_size).await {
+                Ok(feeds) => feeds,
+                Err(e) => {
+                    println!("{}", format!("Error loading feeds:\n{:?}", e).red());
+                    break;
+                }
             };
             if feeds.is_empty() {
                 break;
@@ -91,7 +126,7 @@ pub async fn download_mobility_database_gtfs(
     Ok(())
 }
 
-async fn load_feeds_chunk(
+async fn load_gtfs_feeds_chunk(
     token: &str,
     offset: usize,
     chunk_size: usize,
@@ -103,35 +138,4 @@ async fn load_feeds_chunk(
     );
     let res = client.get(feeds_url).bearer_auth(token).send().await?;
     res.json::<Vec<GtfsFeedInfo>>().await.map_err(|e| e.into())
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-struct GtfsFeedInfo {
-    id: String,
-    data_type: String,
-    created_at: String,
-    official: Option<bool>,
-    provider: String,
-    source_info: GtfsFeedSourceInfo,
-    latest_dataset: Option<GtfsFeedLatestDataset>,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-struct GtfsFeedSourceInfo {
-    authentication_type: Option<i32>,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-struct GtfsFeedLatestDataset {
-    id: String,
-    hosted_url: String,
-    bounding_box: Option<GtfsFeedBoundingBox>,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-struct GtfsFeedBoundingBox {
-    minimum_latitude: f64,
-    maximum_latitude: f64,
-    minimum_longitude: f64,
-    maximum_longitude: f64,
 }
