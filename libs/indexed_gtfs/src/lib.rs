@@ -11,7 +11,6 @@ pub use structures::*;
 impl<'a> Gtfs<'a> {
     /// Parses the provided buffers into GTFS data.
     pub fn from_buffers(buffers: GtfsBufferSlices<'a>) -> Result<Self> {
-        #[macro_export]
         macro_rules! do_parse {
             ($name:ident, $ty:ty) => {
                 match buffers.$name {
@@ -131,7 +130,6 @@ impl GtfsBuffers {
 
     /// Load available GTFS files from the given directory.
     pub fn from_dir(gtfs_dir: &Path, filter: &GtfsFilter) -> Self {
-        #[macro_export]
         macro_rules! load_from_dir {
             ($name:ident) => {
                 if filter.$name {
@@ -185,7 +183,6 @@ impl GtfsBuffers {
         archive: &mut zip::ZipArchive<R>,
         filter: &GtfsFilter,
     ) -> Self {
-        #[macro_export]
         macro_rules! load_from_zip {
             ($name:ident) => {
                 if filter.$name {
@@ -254,7 +251,6 @@ impl GtfsBuffersMmap {
     /// This can be much more efficient with large datasets but is unsafe when
     /// the underlying file is changed while it is read.
     pub unsafe fn from_dir(gtfs_dir: &Path, filter: &GtfsFilter) -> Self {
-        #[macro_export]
         macro_rules! load_from_dir_mmap {
             ($name:ident) => {
                 if filter.$name {

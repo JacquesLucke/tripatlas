@@ -1,6 +1,5 @@
 use crate::ParseCsvField;
 
-#[macro_export]
 macro_rules! parse_primitive_type {
     ($ty:ty) => {
         impl<'buf> ParseCsvField<'buf> for $ty {
