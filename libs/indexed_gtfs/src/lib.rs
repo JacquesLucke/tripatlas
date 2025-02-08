@@ -9,7 +9,8 @@ use std::{
 pub use structures::*;
 
 impl<'a> Gtfs<'a> {
-    pub fn from_buffers(buffers: GtfsBuffers<'a>) -> std::result::Result<Self, ()> {
+    /// Parses the provided buffers into GTFS data.
+    pub fn from_buffers(buffers: GtfsBufferSlices<'a>) -> std::result::Result<Self, ()> {
         #[macro_export]
         macro_rules! do_parse {
             ($name:ident, $ty:ty) => {
@@ -40,8 +41,11 @@ impl<'a> Gtfs<'a> {
     }
 }
 
+/// Contains references to buffers which generally wrap the .txt files in a GTFS archive.
+/// This is usually created with [`GtfsBuffers::from_dir`] or [`GtfsBuffersMmap::from_dir`]
+/// and their `.to_slices()` method.
 #[derive(Debug)]
-pub struct GtfsBuffers<'a> {
+pub struct GtfsBufferSlices<'a> {
     pub stop_times: Option<&'a [u8]>,
     pub stops: Option<&'a [u8]>,
     pub trips: Option<&'a [u8]>,
@@ -53,7 +57,8 @@ pub struct GtfsBuffers<'a> {
     pub attributions: Option<&'a [u8]>,
 }
 
-pub struct GtfsBuffersRAM {
+/// Owns a vector for each file in a GTFS archive.
+pub struct GtfsBuffers {
     pub stop_times: Option<Vec<u8>>,
     pub stops: Option<Vec<u8>>,
     pub trips: Option<Vec<u8>>,
@@ -65,7 +70,8 @@ pub struct GtfsBuffersRAM {
     pub attributions: Option<Vec<u8>>,
 }
 
-impl GtfsBuffersRAM {
+impl GtfsBuffers {
+    /// Load available GTFS files from the given directory.
     pub fn from_dir(gtfs_dir: &Path) -> Self {
         Self {
             stop_times: std::fs::read(gtfs_dir.join("stop_times.txt")).ok(),
@@ -80,12 +86,16 @@ impl GtfsBuffersRAM {
         }
     }
 
+    /// Load the available GTFS files from a zip file.
     pub fn from_zip_file_path(gtfs_zip_path: &Path) -> Result<Self> {
         let file = std::fs::File::open(gtfs_zip_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
         Ok(Self::from_zip_file(&mut archive))
     }
 
+    /// Load the available GTFS files from a zip file using memory-mapped IO.
+    /// That can be slightly more efficient than [`from_zip_file_path`] but
+    /// is unsafe when the underlying file is changed while it is read.
     pub unsafe fn from_zip_file_path_mmap(gtfs_zip_path: &Path) -> Result<Self> {
         let file = std::fs::File::open(gtfs_zip_path)?;
         let mmap = memmap2::Mmap::map(&file)?;
@@ -93,6 +103,7 @@ impl GtfsBuffersRAM {
         Ok(Self::from_zip_file(&mut archive))
     }
 
+    /// Load the available GTFS files from a slice that contains a zip file.
     pub fn from_zip_file_buffer(gtfs_zip_buffer: &[u8]) -> Result<Self> {
         let mut archive = zip::ZipArchive::new(std::io::Cursor::new(gtfs_zip_buffer))?;
         Ok(Self::from_zip_file(&mut archive))
@@ -122,8 +133,9 @@ impl GtfsBuffersRAM {
         Ok(buf)
     }
 
-    pub fn to_slices<'a>(&'a self) -> GtfsBuffers<'a> {
-        GtfsBuffers {
+    /// Get the slices owned by this instance to use with [`Gtfs::from_buffers`].
+    pub fn to_slices<'a>(&'a self) -> GtfsBufferSlices<'a> {
+        GtfsBufferSlices {
             stop_times: self.stop_times.as_ref().map(|s| &s[..]),
             stops: self.stops.as_ref().map(|s| &s[..]),
             trips: self.trips.as_ref().map(|s| &s[..]),
@@ -137,6 +149,9 @@ impl GtfsBuffersRAM {
     }
 }
 
+/// Similar to [`GtfsBuffers`] but does not make copies of the buffers.
+/// This can be much more efficient with large datasets but is unsafe when
+/// the underlying file is changed while it is read.
 pub struct GtfsBuffersMmap {
     pub stop_times: Option<memmap2::Mmap>,
     pub stops: Option<memmap2::Mmap>,
@@ -150,6 +165,9 @@ pub struct GtfsBuffersMmap {
 }
 
 impl GtfsBuffersMmap {
+    /// Load available GTFS files from the given directory.
+    /// This can be much more efficient with large datasets but is unsafe when
+    /// the underlying file is changed while it is read.
     pub unsafe fn from_dir(gtfs_dir: &Path) -> Self {
         Self {
             stop_times: Self::load(gtfs_dir, "stop_times.txt"),
@@ -173,8 +191,9 @@ impl GtfsBuffersMmap {
 }
 
 impl GtfsBuffersMmap {
-    pub fn to_slices<'a>(&'a self) -> GtfsBuffers<'a> {
-        GtfsBuffers {
+    /// Get the slices owned by this instance to use with [`Gtfs::from_buffers`].
+    pub fn to_slices<'a>(&'a self) -> GtfsBufferSlices<'a> {
+        GtfsBufferSlices {
             stop_times: self.stop_times.as_ref().map(|s| &s[..]),
             stops: self.stops.as_ref().map(|s| &s[..]),
             trips: self.trips.as_ref().map(|s| &s[..]),

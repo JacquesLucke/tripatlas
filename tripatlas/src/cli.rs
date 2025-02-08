@@ -111,8 +111,7 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             let start_time = std::time::Instant::now();
             let gtfs_path =
                 Path::new("/home/jacques/Documents/gtfs_all_datasets/https___files.mobilitydatabase.org_mdb_1869_mdb_1869_202502060034_mdb_1869_202502060034.zip");
-            let buffers =
-                unsafe { indexed_gtfs::GtfsBuffersRAM::from_zip_file_path_mmap(gtfs_path)? };
+            let buffers = unsafe { indexed_gtfs::GtfsBuffers::from_zip_file_path_mmap(gtfs_path)? };
             let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices());
             println!("{:#?}", gtfs);
             println!("Time elapsed: {:?}", start_time.elapsed());
