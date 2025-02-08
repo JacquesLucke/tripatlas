@@ -10,7 +10,9 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Settings />
+      <div className="absolute top-0 right-0 bg-sky-100 p-2 rounded-bl-md shadow-md">
+        <Settings />
+      </div>
     </QueryClientProvider>
   );
 }
@@ -38,7 +40,7 @@ function Settings() {
     );
   }
 
-  return <div className="text-red-500">Hello</div>;
+  return <div>Trip Atlas</div>;
 }
 
 export default App;
