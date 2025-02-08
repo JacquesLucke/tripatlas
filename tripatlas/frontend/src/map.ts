@@ -12,6 +12,8 @@ const map = L.map(mapContainer, {
   // Disable zoom animation for now, because it's hard to align with the
   // canvas overlay.
   zoomAnimation: false,
+  // Limit zooming out because it looks bad when the edge of the map is visible.
+  minZoom: 4,
 });
 
 // Add the Leaflet specific attribution.
