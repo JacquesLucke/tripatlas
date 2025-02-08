@@ -108,13 +108,14 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             .await?;
         }
         Some(CLICommand::ParseTest {}) => {
-            let gtfs_dir = Path::new("/home/jacques/Documents/gtfs_germany");
             let start_time = std::time::Instant::now();
-            // let buffers_ram = indexed_gtfs::GtfsBuffersRAM::from_dir(&gtfs_dir);
-            let buffers_mmap = unsafe { indexed_gtfs::GtfsBuffersMmap::from_dir(&gtfs_dir) };
-            let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers_mmap.to_slices());
-            println!("Time elapsed: {:?}", start_time.elapsed());
+            let gtfs_path =
+                Path::new("/home/jacques/Documents/gtfs_all_datasets/https___files.mobilitydatabase.org_mdb_1869_mdb_1869_202502060034_mdb_1869_202502060034.zip");
+            let buffers =
+                unsafe { indexed_gtfs::GtfsBuffersRAM::from_zip_file_path_mmap(gtfs_path)? };
+            let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices());
             println!("{:#?}", gtfs);
+            println!("Time elapsed: {:?}", start_time.elapsed());
         }
 
         Some(CLICommand::TestLoadDatasets { directory }) => {

@@ -1,6 +1,10 @@
 mod structures;
 
-use std::path::Path;
+use anyhow::Result;
+use std::{
+    io::{Read, Seek},
+    path::Path,
+};
 
 pub use structures::*;
 
@@ -74,6 +78,48 @@ impl GtfsBuffersRAM {
             feed_infos: std::fs::read(gtfs_dir.join("feed_info.txt")).ok(),
             attributions: std::fs::read(gtfs_dir.join("attributions.txt")).ok(),
         }
+    }
+
+    pub fn from_zip_file_path(gtfs_zip_path: &Path) -> Result<Self> {
+        let file = std::fs::File::open(gtfs_zip_path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        Ok(Self::from_zip_file(&mut archive))
+    }
+
+    pub unsafe fn from_zip_file_path_mmap(gtfs_zip_path: &Path) -> Result<Self> {
+        let file = std::fs::File::open(gtfs_zip_path)?;
+        let mmap = memmap2::Mmap::map(&file)?;
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(mmap))?;
+        Ok(Self::from_zip_file(&mut archive))
+    }
+
+    pub fn from_zip_file_buffer(gtfs_zip_buffer: &[u8]) -> Result<Self> {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(gtfs_zip_buffer))?;
+        Ok(Self::from_zip_file(&mut archive))
+    }
+
+    pub fn from_zip_file<R: Read + Seek>(archive: &mut zip::ZipArchive<R>) -> Self {
+        Self {
+            stop_times: Self::read_archive_file(archive, "stop_times.txt").ok(),
+            stops: Self::read_archive_file(archive, "stops.txt").ok(),
+            trips: Self::read_archive_file(archive, "trips.txt").ok(),
+            routes: Self::read_archive_file(archive, "routes.txt").ok(),
+            calendar: Self::read_archive_file(archive, "calendar.txt").ok(),
+            calendar_dates: Self::read_archive_file(archive, "calendar_dates.txt").ok(),
+            agencies: Self::read_archive_file(archive, "agency.txt").ok(),
+            feed_infos: Self::read_archive_file(archive, "feed_info.txt").ok(),
+            attributions: Self::read_archive_file(archive, "attributions.txt").ok(),
+        }
+    }
+
+    fn read_archive_file<R: Read + Seek>(
+        archive: &mut zip::ZipArchive<R>,
+        file_name: &str,
+    ) -> Result<Vec<u8>> {
+        let mut file = archive.by_name(file_name)?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf)?;
+        Ok(buf)
     }
 
     pub fn to_slices<'a>(&'a self) -> GtfsBuffers<'a> {
