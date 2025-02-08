@@ -70,56 +70,141 @@ pub struct GtfsBuffers {
     pub attributions: Option<Vec<u8>>,
 }
 
-impl GtfsBuffers {
-    /// Load available GTFS files from the given directory.
-    pub fn from_dir(gtfs_dir: &Path) -> Self {
+#[derive(Debug, Clone)]
+pub struct GtfsFilter {
+    pub stop_times: bool,
+    pub stops: bool,
+    pub trips: bool,
+    pub routes: bool,
+    pub calendar: bool,
+    pub calendar_dates: bool,
+    pub agencies: bool,
+    pub feed_infos: bool,
+    pub attributions: bool,
+}
+
+impl GtfsFilter {
+    pub fn all() -> Self {
         Self {
-            stop_times: std::fs::read(gtfs_dir.join("stop_times.txt")).ok(),
-            stops: std::fs::read(gtfs_dir.join("stops.txt")).ok(),
-            trips: std::fs::read(gtfs_dir.join("trips.txt")).ok(),
-            routes: std::fs::read(gtfs_dir.join("routes.txt")).ok(),
-            calendar: std::fs::read(gtfs_dir.join("calendar.txt")).ok(),
-            calendar_dates: std::fs::read(gtfs_dir.join("calendar_dates.txt")).ok(),
-            agencies: std::fs::read(gtfs_dir.join("agency.txt")).ok(),
-            feed_infos: std::fs::read(gtfs_dir.join("feed_info.txt")).ok(),
-            attributions: std::fs::read(gtfs_dir.join("attributions.txt")).ok(),
+            stop_times: true,
+            stops: true,
+            trips: true,
+            routes: true,
+            calendar: true,
+            calendar_dates: true,
+            agencies: true,
+            feed_infos: true,
+            attributions: true,
+        }
+    }
+
+    pub fn none() -> Self {
+        Self {
+            stop_times: false,
+            stops: false,
+            trips: false,
+            routes: false,
+            calendar: false,
+            calendar_dates: false,
+            agencies: false,
+            feed_infos: false,
+            attributions: false,
+        }
+    }
+}
+
+impl Default for GtfsFilter {
+    fn default() -> Self {
+        Self::all()
+    }
+}
+
+impl GtfsBuffers {
+    /// Loads the GTFS either from a directory or a zip file.
+    pub fn from_path(gtfs_path: &Path, filter: &GtfsFilter) -> Result<Self> {
+        if gtfs_path.is_dir() {
+            Ok(Self::from_dir(gtfs_path, filter))
+        } else {
+            Self::from_zip_file_path(gtfs_path, filter)
+        }
+    }
+
+    /// Load available GTFS files from the given directory.
+    pub fn from_dir(gtfs_dir: &Path, filter: &GtfsFilter) -> Self {
+        #[macro_export]
+        macro_rules! load_from_dir {
+            ($name:ident) => {
+                if filter.$name {
+                    std::fs::read(gtfs_dir.join(format!("{}.txt", stringify!($name)))).ok()
+                } else {
+                    None
+                }
+            };
+        }
+
+        Self {
+            stop_times: load_from_dir!(stop_times),
+            stops: load_from_dir!(stops),
+            trips: load_from_dir!(trips),
+            routes: load_from_dir!(routes),
+            calendar: load_from_dir!(calendar),
+            calendar_dates: load_from_dir!(calendar_dates),
+            agencies: load_from_dir!(agencies),
+            feed_infos: load_from_dir!(feed_infos),
+            attributions: load_from_dir!(attributions),
         }
     }
 
     /// Load the available GTFS files from a zip file.
-    pub fn from_zip_file_path(gtfs_zip_path: &Path) -> Result<Self> {
+    pub fn from_zip_file_path(gtfs_zip_path: &Path, filter: &GtfsFilter) -> Result<Self> {
         let file = std::fs::File::open(gtfs_zip_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
-        Ok(Self::from_zip_file(&mut archive))
+        Ok(Self::from_zip_file(&mut archive, filter))
     }
 
     /// Load the available GTFS files from a zip file using memory-mapped IO.
     /// That can be slightly more efficient than [`Self::from_zip_file_path`] but
     /// is unsafe when the underlying file is changed while it is read.
-    pub unsafe fn from_zip_file_path_mmap(gtfs_zip_path: &Path) -> Result<Self> {
+    pub unsafe fn from_zip_file_path_mmap(
+        gtfs_zip_path: &Path,
+        filter: &GtfsFilter,
+    ) -> Result<Self> {
         let file = std::fs::File::open(gtfs_zip_path)?;
         let mmap = memmap2::Mmap::map(&file)?;
         let mut archive = zip::ZipArchive::new(std::io::Cursor::new(mmap))?;
-        Ok(Self::from_zip_file(&mut archive))
+        Ok(Self::from_zip_file(&mut archive, filter))
     }
 
     /// Load the available GTFS files from a slice that contains a zip file.
-    pub fn from_zip_file_buffer(gtfs_zip_buffer: &[u8]) -> Result<Self> {
+    pub fn from_zip_file_buffer(gtfs_zip_buffer: &[u8], filter: &GtfsFilter) -> Result<Self> {
         let mut archive = zip::ZipArchive::new(std::io::Cursor::new(gtfs_zip_buffer))?;
-        Ok(Self::from_zip_file(&mut archive))
+        Ok(Self::from_zip_file(&mut archive, filter))
     }
 
-    pub fn from_zip_file<R: Read + Seek>(archive: &mut zip::ZipArchive<R>) -> Self {
+    pub fn from_zip_file<R: Read + Seek>(
+        archive: &mut zip::ZipArchive<R>,
+        filter: &GtfsFilter,
+    ) -> Self {
+        #[macro_export]
+        macro_rules! load_from_zip {
+            ($name:ident) => {
+                if filter.$name {
+                    Self::read_archive_file(archive, &format!("{}.txt", stringify!($name))).ok()
+                } else {
+                    None
+                }
+            };
+        }
         Self {
-            stop_times: Self::read_archive_file(archive, "stop_times.txt").ok(),
-            stops: Self::read_archive_file(archive, "stops.txt").ok(),
-            trips: Self::read_archive_file(archive, "trips.txt").ok(),
-            routes: Self::read_archive_file(archive, "routes.txt").ok(),
-            calendar: Self::read_archive_file(archive, "calendar.txt").ok(),
-            calendar_dates: Self::read_archive_file(archive, "calendar_dates.txt").ok(),
-            agencies: Self::read_archive_file(archive, "agency.txt").ok(),
-            feed_infos: Self::read_archive_file(archive, "feed_info.txt").ok(),
-            attributions: Self::read_archive_file(archive, "attributions.txt").ok(),
+            stop_times: load_from_zip!(stop_times),
+            stops: load_from_zip!(stops),
+            trips: load_from_zip!(trips),
+            routes: load_from_zip!(routes),
+            calendar: load_from_zip!(calendar),
+            calendar_dates: load_from_zip!(calendar_dates),
+            agencies: load_from_zip!(agencies),
+            feed_infos: load_from_zip!(feed_infos),
+            attributions: load_from_zip!(attributions),
         }
     }
 
@@ -168,17 +253,27 @@ impl GtfsBuffersMmap {
     /// Load available GTFS files from the given directory.
     /// This can be much more efficient with large datasets but is unsafe when
     /// the underlying file is changed while it is read.
-    pub unsafe fn from_dir(gtfs_dir: &Path) -> Self {
+    pub unsafe fn from_dir(gtfs_dir: &Path, filter: &GtfsFilter) -> Self {
+        #[macro_export]
+        macro_rules! load_from_dir_mmap {
+            ($name:ident) => {
+                if filter.$name {
+                    Self::load(gtfs_dir, &format!("{}.txt", stringify!($name)))
+                } else {
+                    None
+                }
+            };
+        }
         Self {
-            stop_times: Self::load(gtfs_dir, "stop_times.txt"),
-            stops: Self::load(gtfs_dir, "stops.txt"),
-            trips: Self::load(gtfs_dir, "trips.txt"),
-            routes: Self::load(gtfs_dir, "routes.txt"),
-            calendar: Self::load(gtfs_dir, "calendar.txt"),
-            calendar_dates: Self::load(gtfs_dir, "calendar_dates.txt"),
-            agencies: Self::load(gtfs_dir, "agency.txt"),
-            feed_infos: Self::load(gtfs_dir, "feed_info.txt"),
-            attributions: Self::load(gtfs_dir, "attributions.txt"),
+            stop_times: load_from_dir_mmap!(stop_times),
+            stops: load_from_dir_mmap!(stops),
+            trips: load_from_dir_mmap!(trips),
+            routes: load_from_dir_mmap!(routes),
+            calendar: load_from_dir_mmap!(calendar),
+            calendar_dates: load_from_dir_mmap!(calendar_dates),
+            agencies: load_from_dir_mmap!(agencies),
+            feed_infos: load_from_dir_mmap!(feed_infos),
+            attributions: load_from_dir_mmap!(attributions),
         }
     }
 

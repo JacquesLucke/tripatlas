@@ -1,5 +1,6 @@
 use anyhow::Result;
 use colored::Colorize;
+use indexed_gtfs::{Gtfs, GtfsBuffers, GtfsBuffersMmap, GtfsFilter};
 use num_format::ToFormattedString;
 use rayon::prelude::*;
 
@@ -49,12 +50,13 @@ pub async fn gtfs_stats(input_path: &std::path::Path, deduplicate_archives: bool
                     .unwrap_or("")
             );
             if p.is_dir() {
-                let buffers = unsafe { indexed_gtfs::GtfsBuffersMmap::from_dir(p) };
-                let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices())?;
+                let buffers = unsafe { GtfsBuffersMmap::from_dir(p, &GtfsFilter::all()) };
+                let gtfs = Gtfs::from_buffers(buffers.to_slices())?;
                 Ok(analyse_gtfs(&gtfs))
             } else {
-                let buffers = unsafe { indexed_gtfs::GtfsBuffers::from_zip_file_path_mmap(p) }?;
-                let gtfs = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices())?;
+                let buffers =
+                    unsafe { GtfsBuffers::from_zip_file_path_mmap(p, &GtfsFilter::all()) }?;
+                let gtfs = Gtfs::from_buffers(buffers.to_slices())?;
                 Ok(analyse_gtfs(&gtfs))
             }
         })
@@ -119,7 +121,7 @@ pub async fn gtfs_stats(input_path: &std::path::Path, deduplicate_archives: bool
     Ok(())
 }
 
-fn analyse_gtfs(gtfs: &indexed_gtfs::Gtfs) -> GtfsStats {
+fn analyse_gtfs(gtfs: &Gtfs) -> GtfsStats {
     GtfsStats {
         stop_times_num: gtfs.stop_times.len,
         stops_num: gtfs.stops.len,

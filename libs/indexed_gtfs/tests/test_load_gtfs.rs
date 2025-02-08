@@ -8,7 +8,7 @@ fn test_load_gtfs_dummy() {
         .join("tests")
         .join("testdata")
         .join("gtfs_dummy");
-    let buffers = GtfsBuffers::from_dir(&path);
+    let buffers = GtfsBuffers::from_dir(&path, &GtfsFilter::all());
     let gtfs = Gtfs::from_buffers(buffers.to_slices()).unwrap();
     assert_eq!(gtfs.stops.len, 2);
 
