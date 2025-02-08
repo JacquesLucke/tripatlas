@@ -32,7 +32,7 @@ impl<'a> Gtfs<'a> {
             stops: do_parse!(stops, Stops),
             trips: do_parse!(trips, Trips),
             routes: do_parse!(routes, Routes),
-            calendar: do_parse!(calendar, Calendar),
+            calendars: do_parse!(calendar, Calendar),
             calendar_dates: do_parse!(calendar_dates, CalendarDates),
             agencies: do_parse!(agencies, Agencies),
             feed_infos: do_parse!(feed_infos, FeedInfos),

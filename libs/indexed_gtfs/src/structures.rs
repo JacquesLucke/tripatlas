@@ -9,7 +9,7 @@ pub struct Gtfs<'a> {
     pub stops: File<Stops<'a>>,
     pub trips: File<Trips<'a>>,
     pub routes: File<Routes<'a>>,
-    pub calendar: File<Calendar<'a>>,
+    pub calendars: File<Calendar<'a>>,
     pub calendar_dates: File<CalendarDates<'a>>,
     pub agencies: File<Agencies<'a>>,
     pub feed_infos: File<FeedInfos<'a>>,
@@ -23,7 +23,7 @@ impl Debug for Gtfs<'_> {
             .field("stops", &self.stops.len)
             .field("trips", &self.trips.len)
             .field("routes", &self.routes.len)
-            .field("calendar", &self.calendar.len)
+            .field("calendar", &self.calendars.len)
             .field("calendar_dates", &self.calendar_dates.len)
             .field("agencies", &self.agencies.len)
             .field("feed_infos", &self.feed_infos.len)

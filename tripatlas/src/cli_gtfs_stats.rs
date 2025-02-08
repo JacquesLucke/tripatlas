@@ -2,12 +2,22 @@ use std::{collections::HashSet, ffi::OsStr, path::PathBuf};
 
 use anyhow::Result;
 use colored::Colorize;
+use num_format::ToFormattedString;
 use rayon::prelude::*;
 
 use crate::util;
 
+#[derive(Debug, Default)]
 struct GtfsStats {
-    stops: usize,
+    stop_times_num: usize,
+    stops_num: usize,
+    trips_num: usize,
+    routes_num: usize,
+    calendars_num: usize,
+    calendar_dates_num: usize,
+    agencies_num: usize,
+    feed_infos_num: usize,
+    attributions_num: usize,
 }
 
 pub async fn gtfs_stats(input_path: &std::path::Path, deduplicate_archives: bool) -> Result<()> {
@@ -53,14 +63,60 @@ pub async fn gtfs_stats(input_path: &std::path::Path, deduplicate_archives: bool
         .collect();
 
     let merged_stats = all_gtfs_stats.into_iter().filter_map(|r| r.ok()).fold(
-        GtfsStats { stops: 0 },
+        GtfsStats {
+            ..Default::default()
+        },
         |acc, stats| GtfsStats {
-            stops: acc.stops + stats.stops,
+            stop_times_num: acc.stop_times_num + stats.stop_times_num,
+            stops_num: acc.stops_num + stats.stops_num,
+            trips_num: acc.trips_num + stats.trips_num,
+            routes_num: acc.routes_num + stats.routes_num,
+            calendars_num: acc.calendars_num + stats.calendars_num,
+            calendar_dates_num: acc.calendar_dates_num + stats.calendar_dates_num,
+            agencies_num: acc.agencies_num + stats.agencies_num,
+            feed_infos_num: acc.feed_infos_num + stats.feed_infos_num,
+            attributions_num: acc.attributions_num + stats.attributions_num,
         },
     );
 
     println!("Total GTFS stats:");
-    println!("  Stops: {}", merged_stats.stops);
+    let locale = num_format::Locale::en;
+    println!(
+        "  Stop times: {}",
+        merged_stats.stop_times_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Stops: {}",
+        merged_stats.stops_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Trips: {}",
+        merged_stats.trips_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Routes: {}",
+        merged_stats.routes_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Calendars: {}",
+        merged_stats.calendars_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Calendar dates: {}",
+        merged_stats.calendar_dates_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Agencies: {}",
+        merged_stats.agencies_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Feed infos: {}",
+        merged_stats.feed_infos_num.to_formatted_string(&locale)
+    );
+    println!(
+        "  Attributions: {}",
+        merged_stats.attributions_num.to_formatted_string(&locale)
+    );
 
     Ok(())
 }
@@ -142,6 +198,14 @@ fn get_estimated_dataset_size(path: &std::path::Path) -> Result<u64> {
 
 fn analyse_gtfs(gtfs: &indexed_gtfs::Gtfs) -> GtfsStats {
     GtfsStats {
-        stops: gtfs.stops.len,
+        stop_times_num: gtfs.stop_times.len,
+        stops_num: gtfs.stops.len,
+        trips_num: gtfs.trips.len,
+        routes_num: gtfs.routes.len,
+        calendars_num: gtfs.calendars.len,
+        calendar_dates_num: gtfs.calendar_dates.len,
+        agencies_num: gtfs.agencies.len,
+        feed_infos_num: gtfs.feed_infos.len,
+        attributions_num: gtfs.attributions.len,
     }
 }

@@ -113,7 +113,9 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             .await?;
         }
         Some(CLICommand::GtfsStats { path }) => {
+            let start = std::time::Instant::now();
             cli_gtfs_stats::gtfs_stats(Path::new(&path), true).await?;
+            println!("Analysis took {:?}", start.elapsed());
         }
         Some(CLICommand::ParseTest {}) => {
             let start_time = std::time::Instant::now();
