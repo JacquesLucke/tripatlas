@@ -24,7 +24,7 @@ impl RTreeObject for OriginalStop {
     }
 }
 
-pub async fn gtfs_merge(input_path: &Path, output_path: &Path) -> Result<()> {
+pub async fn gtfs_merge(input_path: &Path, _output_path: &Path) -> Result<()> {
     let gtfs_sources = gtfs_sources::get_gtfs_sources(input_path, true);
     let gtfs_sources = gtfs_sources::sort_gtfs_sources_by_size(gtfs_sources);
     println!("Found {} GTFS sources to merge.", gtfs_sources.len());

@@ -43,7 +43,7 @@ impl XYZ {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
-
+    #[cfg(test)]
     pub fn to_lat_lon(&self) -> LatLon {
         let x = self.x / APPROXIMATE_EARTH_RADIUS_IN_KM;
         let y = self.y / APPROXIMATE_EARTH_RADIUS_IN_KM;
@@ -54,7 +54,7 @@ impl XYZ {
 
         LatLon::new(lat, lon)
     }
-
+    #[cfg(test)]
     pub fn dist_to(&self, other: &Self) -> f32 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
@@ -68,7 +68,7 @@ impl XYZ {
 fn to_radians(degrees: f32) -> f32 {
     degrees * std::f32::consts::PI / 180.0
 }
-
+#[cfg(test)]
 fn to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
 }
