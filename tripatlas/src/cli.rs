@@ -33,8 +33,14 @@ enum CLICommand {
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
     },
+    /// Analyse one or more GTFS datasets.
+    GtfsStats {
+        /// Path to GTFS dataset or directory containing GTFS datasets. A dataset can be a .zip file or a directory.
+        #[arg(long)]
+        path: String,
+    },
     /// Download GTFS datasets from the Mobility Database.
-    DownloadMobilityDatabaseGtfs {
+    GtfsDownloadMobilityDatabase {
         /// An access token retrieved from <https://mobilitydatabase.org/> after signing in.
         /// Note: This is *not* the refresh token, but the access token.
         #[arg(long)]
@@ -45,12 +51,6 @@ enum CLICommand {
         /// A limit on the number of GTFS datasets to download.
         #[arg(long, default_value_t = 10)]
         limit: usize,
-    },
-    /// Analyse one or more GTFS datasets.
-    GtfsStats {
-        /// Path to GTFS dataset or directory containing GTFS datasets. A dataset can be a .zip file or a directory.
-        #[arg(long)]
-        path: String,
     },
 }
 
@@ -97,7 +97,7 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             })
             .await?
         }
-        Some(CLICommand::DownloadMobilityDatabaseGtfs {
+        Some(CLICommand::GtfsDownloadMobilityDatabase {
             access_token,
             directory,
             limit,
