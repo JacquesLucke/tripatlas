@@ -1,5 +1,6 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { MapOverlay } from "./map_overlay/map_overlay.ts";
 
 const mapContainer = document.getElementById("map-container")!;
 const defaultCoordinates = new L.LatLng(52.637778, 13.203611);
@@ -44,3 +45,21 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:
     '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
+
+export let overlay: MapOverlay | null = null;
+try {
+  overlay = new MapOverlay(map);
+} catch (e) {
+  console.error(e);
+}
+
+function updateOverlay() {
+  if (overlay) {
+    overlay.render();
+  }
+}
+
+map.on("move", updateOverlay);
+map.on("zoomlevelschange", updateOverlay);
+map.on("zoomanim", updateOverlay);
+map.on("drag", updateOverlay);
