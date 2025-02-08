@@ -1,5 +1,7 @@
 const apiUrlPrefix = import.meta.env.VITE_TRIP_ATLAS_API_URL ?? "./api";
-console.log("Using API at:", apiUrlPrefix);
+if (import.meta.env.VITE_TRIP_ATLAS_API_URL) {
+  console.log("Using API at:", apiUrlPrefix);
+}
 
 export interface Config {
   allow_shutdown_from_frontend: boolean;
