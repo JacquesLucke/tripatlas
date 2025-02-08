@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 use tokio::process::Command;
 
@@ -20,6 +22,9 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
         std::net::TcpListener::bind((params.api_host.as_str(), params.api_port.unwrap_or(0)))?;
     let api_port = api_listener.local_addr()?.port();
 
+    let frontend_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("frontend");
+    println!("Starting frontend dev server in {:?}", frontend_dir);
+
     let frontend_dev_process = Command::new("npm")
         .args([
             "run",
@@ -30,7 +35,7 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
             "--port",
             &params.frontend_port.to_string(),
         ])
-        .current_dir("./frontend")
+        .current_dir(frontend_dir)
         .env(
             "VITE_TRIP_ATLAS_API_URL",
             format!("http://{}:{}/api", params.api_host, api_port),
