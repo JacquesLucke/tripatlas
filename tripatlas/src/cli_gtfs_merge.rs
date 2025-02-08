@@ -1,5 +1,5 @@
 use anyhow::Result;
-use indexed_gtfs::GtfsFilter;
+use indexed_gtfs::{Gtfs, GtfsFilter};
 use rstar::{RTree, RTreeObject, AABB};
 use std::path::Path;
 
@@ -68,6 +68,39 @@ pub async fn gtfs_merge(input_path: &Path, output_path: &Path) -> Result<()> {
     println!("Size: {}", all_original_stops.len());
     let tree = RTree::bulk_load(all_original_stops);
     println!("Time to build tree: {:?}", start.elapsed());
+
+    let a = LatLon::new(52.6374196, 13.2054151).to_xyz_km();
+    let size_km = 1.0f32;
+    let b = AABB::from_corners(
+        [a.x - size_km, a.y - size_km, a.z - size_km],
+        [a.x + size_km, a.y + size_km, a.z + size_km],
+    );
+
+    for stop in tree.locate_in_envelope(&b) {
+        let source = &gtfs_sources[stop.source_i as usize];
+        let Ok(buffers) = indexed_gtfs::GtfsBuffers::from_path(
+            &source,
+            &GtfsFilter {
+                stops: true,
+                attributions: true,
+                ..GtfsFilter::none()
+            },
+        ) else {
+            continue;
+        };
+        let gtfs = Gtfs::from_buffers(buffers.to_slices()).unwrap();
+        let stop = gtfs
+            .stops
+            .data
+            .as_ref()
+            .unwrap()
+            .stop_name
+            .as_ref()
+            .unwrap()
+            .get(stop.stop_i as usize)
+            .unwrap();
+        println!("{:?}", stop);
+    }
 
     // println!("{:#?}", tree);
 
