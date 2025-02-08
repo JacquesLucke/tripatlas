@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Result;
 
 use crate::start_server;
@@ -13,13 +15,11 @@ pub struct ServeParams {
 pub async fn serve(params: ServeParams) -> Result<()> {
     let url = format!("http://{}:{}", params.host, params.port);
 
-    if let Ok(response) = reqwest::get(&url).await {
-        if response.status() == reqwest::StatusCode::OK {
-            if let Some(on_port_in_use) = params.on_port_in_use {
-                on_port_in_use();
-            }
-            return Ok(());
+    if website_available(&url).await {
+        if let Some(on_port_in_use) = params.on_port_in_use {
+            on_port_in_use();
         }
+        return Ok(());
     }
 
     let listener = std::net::TcpListener::bind((params.host.as_str(), params.port))?;
@@ -32,4 +32,16 @@ pub async fn serve(params: ServeParams) -> Result<()> {
     )
     .await?;
     Ok(())
+}
+
+async fn website_available(url: &str) -> bool {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(1000))
+        .build()
+        .unwrap();
+    let response = client.get(url).send().await;
+    match response {
+        Ok(response) => response.status() == reqwest::StatusCode::OK,
+        Err(_) => false,
+    }
 }
