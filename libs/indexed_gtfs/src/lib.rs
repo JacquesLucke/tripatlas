@@ -94,7 +94,7 @@ impl GtfsBuffers {
     }
 
     /// Load the available GTFS files from a zip file using memory-mapped IO.
-    /// That can be slightly more efficient than [`from_zip_file_path`] but
+    /// That can be slightly more efficient than [`Self::from_zip_file_path`] but
     /// is unsafe when the underlying file is changed while it is read.
     pub unsafe fn from_zip_file_path_mmap(gtfs_zip_path: &Path) -> Result<Self> {
         let file = std::fs::File::open(gtfs_zip_path)?;

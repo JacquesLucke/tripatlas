@@ -34,7 +34,7 @@ enum CLICommand {
         port: u16,
     },
     DownloadMobilityDatabaseGtfs {
-        /// An access token retrieved from https://mobilitydatabase.org/ after signing in.
+        /// An access token retrieved from <https://mobilitydatabase.org/> after signing in.
         /// Note: This is *not* the refresh token, but the access token.
         #[arg(long)]
         access_token: String,
