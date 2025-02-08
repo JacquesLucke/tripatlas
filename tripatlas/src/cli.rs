@@ -3,6 +3,7 @@ use std::path::Path;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+use crate::cli_gtfs_stats;
 use crate::cli_serve;
 use crate::cli_serve_dev;
 use crate::gtfs_test_loader;
@@ -44,6 +45,10 @@ enum CLICommand {
         /// A limit on the number of GTFS datasets to download.
         #[arg(long, default_value_t = 10)]
         limit: usize,
+    },
+    GtfsStats {
+        #[arg(long)]
+        path: String,
     },
     TestLoadDatasets {
         #[arg(long)]
@@ -100,12 +105,15 @@ pub async fn handle_command_line_arguments() -> Result<()> {
             directory,
             limit,
         }) => {
-            crate::mobility_database::download_mobility_database_gtfs(
+            crate::cli_mobility_database::download_mobility_database_gtfs(
                 &access_token,
                 &Path::new(&directory),
                 limit,
             )
             .await?;
+        }
+        Some(CLICommand::GtfsStats { path }) => {
+            cli_gtfs_stats::gtfs_stats(Path::new(&path), true).await?;
         }
         Some(CLICommand::ParseTest {}) => {
             let start_time = std::time::Instant::now();

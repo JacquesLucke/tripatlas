@@ -4,6 +4,8 @@ use futures::executor::block_on_stream;
 use genawaiter::{rc::gen, yield_};
 use std::path::Path;
 
+use crate::util;
+
 const MOBILITY_DATABASE_URL: &str = "https://api.mobilitydatabase.org/v1/";
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -102,14 +104,9 @@ pub async fn download_mobility_database_gtfs(
                     continue;
                 }
                 println!("  Saved at {:?}", output_path);
-                let rouned_download_size =
-                    byte_unit::Byte::from_u64(((bytes.len() / 1000) * 1000) as u64);
                 println!(
                     "  Size: {}",
-                    rouned_download_size
-                        .get_appropriate_unit(byte_unit::UnitType::Decimal)
-                        .to_string()
-                        .green()
+                    util::bytes_to_human_string(bytes.len() as u64).green()
                 );
                 downloaded_count += 1;
                 if downloaded_count >= limit {

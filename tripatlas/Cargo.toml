@@ -27,6 +27,8 @@ genawaiter = { version = "0.99.1", features = ["futures03"] }
 futures = "0.3.31"
 byte-unit = "5.1.6"
 colored = "3.0.0"
+walkdir = "2.5.0"
+fs_extra = "1.3.0"
 
 [build-dependencies]
 duct = "0.13.7"

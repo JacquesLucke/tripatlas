@@ -10,7 +10,7 @@ pub use structures::*;
 
 impl<'a> Gtfs<'a> {
     /// Parses the provided buffers into GTFS data.
-    pub fn from_buffers(buffers: GtfsBufferSlices<'a>) -> std::result::Result<Self, ()> {
+    pub fn from_buffers(buffers: GtfsBufferSlices<'a>) -> Result<Self> {
         #[macro_export]
         macro_rules! do_parse {
             ($name:ident, $ty:ty) => {
