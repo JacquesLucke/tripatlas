@@ -22,6 +22,7 @@ csvelo = { path = "../libs/csvelo" }
 memmap2 = "0.9.5"
 num-format = "0.4.4"
 indexed_gtfs = { path = "../libs/indexed_gtfs" }
+rand = "0.9.0"
 
 [build-dependencies]
 duct = "0.13.7"

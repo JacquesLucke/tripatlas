@@ -119,7 +119,10 @@ impl GtfsBuffersMmap {
     }
 
     unsafe fn load(gtfs_dir: &Path, file_name: &str) -> Option<memmap2::Mmap> {
-        memmap2::Mmap::map(&std::fs::File::open(gtfs_dir.join(file_name)).unwrap()).ok()
+        match std::fs::File::open(gtfs_dir.join(file_name)) {
+            Ok(f) => memmap2::Mmap::map(&f).ok(),
+            Err(_) => None,
+        }
     }
 }
 
