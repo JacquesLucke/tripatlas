@@ -25,14 +25,18 @@ function Settings() {
 
   async function shutdown() {
     const url = getApiUrl("/shutdown");
-    await fetch(url, { method: "POST" });
+    let response = await fetch(url, { method: "POST" });
+    if (!response.ok) {
+      alert("Failed to shutdown server.");
+      return;
+    }
     window.close();
   }
 
   if (config?.allow_shutdown_from_frontend) {
     return (
       <button
-        className="hover:bg-amber-200 p-2 rounded bg-amber-100 m-4"
+        className="hover:border-black border-2 border-transparent duration-200 p-1 rounded m-2"
         onClick={shutdown}
       >
         Shutdown
