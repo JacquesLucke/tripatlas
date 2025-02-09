@@ -10,7 +10,9 @@ pub struct State {
 
 struct PrometheusMetrics {
     registry: prometheus::Registry,
-    counter: prometheus::Counter,
+    index_html_requests_total: prometheus::Counter,
+    assets_requests_total: prometheus::Counter,
+    assets_not_found_total: prometheus::Counter,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,17 +25,23 @@ static FRONTEND_FILES: include_dir::Dir =
 
 #[actix_web::get("/{filename:.*}")]
 async fn route_frontend(req: actix_web::HttpRequest, state: web::Data<State>) -> impl Responder {
-    state.metrics.counter.inc();
     let path = req.match_info().get("filename");
     let path = path.unwrap_or("not_found.html");
     let path = if path.is_empty() { "index.html" } else { path };
 
     if let Some(file) = FRONTEND_FILES.get_file(path) {
+        if path == "index.html" {
+            state.metrics.index_html_requests_total.inc();
+        } else {
+            state.metrics.assets_requests_total.inc();
+        }
+
         let mime_type = mime_guess::from_path(path).first_or_octet_stream();
         HttpResponse::Ok()
             .content_type(mime_type.to_string())
             .body(file.contents())
     } else {
+        state.metrics.assets_not_found_total.inc();
         HttpResponse::NotFound().body("File not found")
     }
 }
@@ -73,28 +81,59 @@ async fn route_api_metrics(state: web::Data<State>) -> impl Responder {
         .body(buffer)
 }
 
+fn prepare_prometheus_metrics() -> PrometheusMetrics {
+    let namespace = "tripatlas";
+    let index_html_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new(
+            "index_html_requests_total",
+            "Total number of index.html requests",
+        )
+        .namespace(namespace),
+    )
+    .unwrap();
+
+    let assets_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new("assets_requests_total", "Total number of assets requests")
+            .namespace(namespace),
+    )
+    .unwrap();
+
+    let assets_not_found_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new("assets_not_found_total", "Total number of assets not found")
+            .namespace(namespace),
+    )
+    .unwrap();
+
+    let counters = vec![
+        &index_html_requests_total,
+        &assets_requests_total,
+        &assets_not_found_total,
+    ];
+
+    let registry = prometheus::Registry::new();
+    for counter in counters {
+        registry.register(Box::new(counter.clone())).unwrap();
+    }
+
+    PrometheusMetrics {
+        registry,
+        index_html_requests_total,
+        assets_requests_total,
+        assets_not_found_total,
+    }
+}
+
 pub async fn start_server(
     listener: TcpListener,
     on_start: Option<Box<dyn FnOnce() + Send>>,
     allow_shutdown_from_frontend: bool,
 ) -> std::io::Result<()> {
-    let prometheus_registry = prometheus::Registry::new();
-    let counter =
-        prometheus::Counter::with_opts(prometheus::Opts::new("my_counter", "My first counter"))
-            .unwrap();
-    prometheus_registry
-        .register(Box::new(counter.clone()))
-        .unwrap();
-
     // This state is shared across all worker threads.
     let state = web::Data::new(State {
         config: Config {
             allow_shutdown_from_frontend,
         },
-        metrics: PrometheusMetrics {
-            registry: prometheus_registry,
-            counter,
-        },
+        metrics: prepare_prometheus_metrics(),
     });
 
     let server = HttpServer::new(move || {
