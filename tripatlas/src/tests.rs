@@ -105,3 +105,10 @@ async fn shutdown_is_not_authorized() {
     let response = ctx.post("/api/shutdown").await;
     assert_eq!(response.status(), reqwest::StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn metrics_are_available() {
+    let ctx = setup().await;
+    let response = ctx.get("/api/metrics").await;
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+}
