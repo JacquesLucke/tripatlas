@@ -13,6 +13,9 @@ struct PrometheusMetrics {
     index_html_requests_total: prometheus::Counter,
     assets_requests_total: prometheus::Counter,
     assets_not_found_total: prometheus::Counter,
+    api_root_requests_total: prometheus::Counter,
+    metrics_requests_total: prometheus::Counter,
+    config_requests_total: prometheus::Counter,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -47,12 +50,14 @@ async fn route_frontend(req: actix_web::HttpRequest, state: web::Data<State>) ->
 }
 
 #[actix_web::get("/api")]
-async fn route_api_root() -> impl Responder {
+async fn route_api_root(state: web::Data<State>) -> impl Responder {
+    state.metrics.api_root_requests_total.inc();
     HttpResponse::Ok().body("The api is working.")
 }
 
 #[actix_web::get("/api/config")]
 async fn route_api_config(state: web::Data<State>) -> impl Responder {
+    state.metrics.config_requests_total.inc();
     HttpResponse::Ok().json(Config {
         allow_shutdown_from_frontend: state.config.allow_shutdown_from_frontend,
     })
@@ -72,6 +77,7 @@ async fn route_api_shutdown(state: web::Data<State>) -> impl Responder {
 
 #[actix_web::get("/api/metrics")]
 async fn route_api_metrics(state: web::Data<State>) -> impl Responder {
+    state.metrics.metrics_requests_total.inc();
     let encoder = prometheus::TextEncoder::new();
     let metric_families = state.metrics.registry.gather();
     let mut buffer = vec![];
@@ -91,15 +97,31 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         .namespace(namespace),
     )
     .unwrap();
-
     let assets_requests_total = prometheus::Counter::with_opts(
         prometheus::Opts::new("assets_requests_total", "Total number of assets requests")
             .namespace(namespace),
     )
     .unwrap();
-
     let assets_not_found_total = prometheus::Counter::with_opts(
         prometheus::Opts::new("assets_not_found_total", "Total number of assets not found")
+            .namespace(namespace),
+    )
+    .unwrap();
+    let api_root_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new(
+            "api_root_requests_total",
+            "Total number of api root requests",
+        )
+        .namespace(namespace),
+    )
+    .unwrap();
+    let metrics_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new("metrics_requests_total", "Total number of metrics requests")
+            .namespace(namespace),
+    )
+    .unwrap();
+    let config_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new("config_requests_total", "Total number of config requests")
             .namespace(namespace),
     )
     .unwrap();
@@ -108,6 +130,9 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         &index_html_requests_total,
         &assets_requests_total,
         &assets_not_found_total,
+        &api_root_requests_total,
+        &metrics_requests_total,
+        &config_requests_total,
     ];
 
     let registry = prometheus::Registry::new();
@@ -120,6 +145,9 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         index_html_requests_total,
         assets_requests_total,
         assets_not_found_total,
+        api_root_requests_total,
+        metrics_requests_total,
+        config_requests_total,
     }
 }
 
