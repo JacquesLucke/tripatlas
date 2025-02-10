@@ -1,5 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
 
@@ -16,6 +17,7 @@ struct PrometheusMetrics {
     api_root_requests_total: prometheus::Counter,
     metrics_requests_total: prometheus::Counter,
     config_requests_total: prometheus::Counter,
+    experimental_requests_total: prometheus::Counter,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -61,6 +63,25 @@ async fn route_api_config(state: web::Data<State>) -> impl Responder {
     HttpResponse::Ok().json(Config {
         allow_shutdown_from_frontend: state.config.allow_shutdown_from_frontend,
     })
+}
+
+#[actix_web::get("/api/tile_color/{zoom}/{tile_x}/{tile_y}")]
+async fn route_api_tile_color(
+    state: web::Data<State>,
+    path: web::Path<(u8, u32, u32)>,
+) -> impl Responder {
+    state.metrics.experimental_requests_total.inc();
+    let (zoom, tile_x, tile_y) = path.into_inner();
+    let mut rng = rand_chacha::ChaChaRng::seed_from_u64(
+        (zoom as u64) * 45634541 + (tile_x as u64) * 1234567 + (tile_y as u64),
+    );
+    let color = format!(
+        "rgba({}, {}, {}, 0.2)",
+        rng.random::<u8>(),
+        rng.random::<u8>(),
+        rng.random::<u8>(),
+    );
+    HttpResponse::Ok().body(color)
 }
 
 #[actix_web::post("/api/shutdown")]
@@ -126,6 +147,15 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
     )
     .unwrap();
 
+    let experimental_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new(
+            "experimental_requests_total",
+            "Total number of experimental requests",
+        )
+        .namespace(namespace),
+    )
+    .unwrap();
+
     let counters = vec![
         &index_html_requests_total,
         &assets_requests_total,
@@ -133,6 +163,7 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         &api_root_requests_total,
         &metrics_requests_total,
         &config_requests_total,
+        &experimental_requests_total,
     ];
 
     let registry = prometheus::Registry::new();
@@ -148,6 +179,7 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         api_root_requests_total,
         metrics_requests_total,
         config_requests_total,
+        experimental_requests_total,
     }
 }
 
@@ -172,6 +204,7 @@ pub async fn start_server(
             .service(route_api_config)
             .service(route_api_shutdown)
             .service(route_api_metrics)
+            .service(route_api_tile_color)
             .service(route_frontend)
     })
     .workers(1)

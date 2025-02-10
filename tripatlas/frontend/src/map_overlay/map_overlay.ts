@@ -1,13 +1,22 @@
 import L from "leaflet";
+import { getApiUrl } from "../api";
+import pThrottle from "p-throttle";
 
 let overlayContainer = document.getElementById(
   "map-overlay-container"
 )! as HTMLDivElement;
 
+const throttle = pThrottle({
+  limit: 10,
+  interval: 100,
+});
+
 export class MapOverlay {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   map: L.Map;
+  colorByTile: Map<string, string | null> = new Map();
+  renderScheduled: boolean = false;
 
   constructor(map: L.Map) {
     this.map = map;
@@ -32,6 +41,17 @@ export class MapOverlay {
   }
 
   render() {
+    if (this.renderScheduled) {
+      return;
+    }
+    this.renderScheduled = true;
+    requestAnimationFrame(() => {
+      this._render();
+      this.renderScheduled = false;
+    });
+  }
+
+  _render() {
     const ctx = this.ctx;
     const map = this.map;
     const mapSize = map.getSize();
@@ -39,20 +59,43 @@ export class MapOverlay {
     this.canvas.width = mapSize.x;
     this.canvas.height = mapSize.y;
 
-    let canvasTiles = getCanvasTiles(map, 8, -100);
+    let canvasTiles = getCanvasTiles(map, Math.floor(map.getZoom()), -100);
 
     ctx.clearRect(0, 0, mapSize.x, mapSize.y);
-    ctx.strokeStyle = "#f00";
     ctx.lineWidth = 1;
     for (const canvasTile of canvasTiles) {
+      ctx.fillStyle = this.getTileColor(
+        canvasTile.tileX,
+        canvasTile.tileY,
+        canvasTile.zoom
+      );
       ctx.beginPath();
-      ctx.moveTo(canvasTile.left, canvasTile.top);
-      ctx.lineTo(canvasTile.right, canvasTile.top);
-      ctx.lineTo(canvasTile.right, canvasTile.bottom);
-      ctx.lineTo(canvasTile.left, canvasTile.bottom);
-      ctx.lineTo(canvasTile.left, canvasTile.top);
-      ctx.stroke();
+      ctx.fillRect(
+        canvasTile.left,
+        canvasTile.top,
+        canvasTile.right - canvasTile.left,
+        canvasTile.bottom - canvasTile.top
+      );
     }
+  }
+
+  getTileColor(tileX: number, tileY: number, zoom: number) {
+    const fallbackColor = "rgba(0,0,0,0.2)";
+    const tileKey = `${zoom}/${tileX}/${tileY}`;
+    if (this.colorByTile.has(tileKey)) {
+      return this.colorByTile.get(tileKey)!;
+    }
+    this.colorByTile.set(tileKey, fallbackColor);
+
+    const fetchColor = throttle(async () => {
+      const apiUrl = getApiUrl(`/tile_color/${zoom}/${tileX}/${tileY}`);
+      const response = await fetch(apiUrl);
+      const color = await response.text();
+      this.colorByTile.set(tileKey, color);
+      this.render();
+    });
+    fetchColor();
+    return fallbackColor;
   }
 }
 
@@ -77,7 +120,6 @@ function getCanvasTiles(map: L.Map, tileZoomLevel: number, paddingPx: number) {
   const tileSizePx = 256;
 
   const actualPaddingPx = paddingPx * Math.pow(2, tileZoomLevel - mapZoom);
-  console.log(actualPaddingPx);
 
   const tileMin = crs
     .latLngToPoint(mapBounds.getNorthWest(), tileZoomLevel)
