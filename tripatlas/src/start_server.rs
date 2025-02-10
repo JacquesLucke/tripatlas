@@ -65,7 +65,7 @@ async fn route_api_config(state: web::Data<State>) -> impl Responder {
     })
 }
 
-#[actix_web::get("/api/tile_color/{zoom}/{tile_x}/{tile_y}")]
+#[actix_web::get("/api/some_hash_23423/{zoom}_{tile_x}_{tile_y}.bin")]
 async fn route_api_tile_color(
     state: web::Data<State>,
     path: web::Path<(u8, u32, u32)>,
@@ -81,7 +81,9 @@ async fn route_api_tile_color(
         rng.random::<u8>(),
         rng.random::<u8>(),
     );
-    HttpResponse::Ok().body(color)
+    HttpResponse::Ok()
+        .insert_header(("Cache-Control", "public, max-age=31536000, immutable"))
+        .body(color)
 }
 
 #[actix_web::post("/api/shutdown")]

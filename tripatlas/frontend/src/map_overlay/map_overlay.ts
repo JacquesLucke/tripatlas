@@ -88,7 +88,9 @@ export class MapOverlay {
     this.colorByTile.set(tileKey, fallbackColor);
 
     const fetchColor = throttle(async () => {
-      const apiUrl = getApiUrl(`/tile_color/${zoom}/${tileX}/${tileY}`);
+      const apiUrl = getApiUrl(
+        `/some_hash_23423/${zoom}_${tileX}_${tileY}.bin`
+      );
       const response = await fetch(apiUrl);
       const color = await response.text();
       this.colorByTile.set(tileKey, color);
