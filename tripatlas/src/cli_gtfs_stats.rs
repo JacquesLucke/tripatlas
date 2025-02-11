@@ -1,6 +1,6 @@
 use anyhow::Result;
 use colored::Colorize;
-use indexed_gtfs::{Gtfs, GtfsBuffers, GtfsBuffersMmap, GtfsFilter};
+use gtfs_io::{Gtfs, GtfsBuffers, GtfsBuffersMmap, GtfsFilter};
 use num_format::ToFormattedString;
 use rayon::prelude::*;
 

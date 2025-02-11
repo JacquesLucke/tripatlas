@@ -1100,6 +1100,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
+name = "gtfs_io"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "csvelo",
+ "memmap2",
+ "rayon",
+ "zip",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1486,17 +1497,6 @@ checksum = "7cab85a7ed0bd5f0e76d93846e0147172bed2e2d3f859bcc33a8d9699cad1a75"
 dependencies = [
  "proc-macro2",
  "quote",
-]
-
-[[package]]
-name = "indexed_gtfs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "csvelo",
- "memmap2",
- "rayon",
- "zip",
 ]
 
 [[package]]
@@ -2915,8 +2915,8 @@ dependencies = [
  "fs_extra",
  "futures",
  "genawaiter",
+ "gtfs_io",
  "include_dir",
- "indexed_gtfs",
  "indoc",
  "memmap2",
  "mime_guess",

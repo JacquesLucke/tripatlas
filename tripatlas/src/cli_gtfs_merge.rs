@@ -1,5 +1,5 @@
 use anyhow::Result;
-use indexed_gtfs::{Gtfs, GtfsFilter};
+use gtfs_io::{Gtfs, GtfsFilter};
 use rstar::{RTree, RTreeObject, AABB};
 use std::path::Path;
 
@@ -33,7 +33,7 @@ pub async fn gtfs_merge(input_path: &Path, _output_path: &Path) -> Result<()> {
 
     for (source_i, gtfs_source) in gtfs_sources.iter().enumerate() {
         println!("{: >3} Loading GTFS from {:?}", source_i + 1, gtfs_source);
-        let Ok(buffers) = indexed_gtfs::GtfsBuffers::from_path(
+        let Ok(buffers) = gtfs_io::GtfsBuffers::from_path(
             &gtfs_source,
             &GtfsFilter {
                 stops: true,
@@ -42,7 +42,7 @@ pub async fn gtfs_merge(input_path: &Path, _output_path: &Path) -> Result<()> {
         ) else {
             continue;
         };
-        let Ok(gtfs) = indexed_gtfs::Gtfs::from_buffers(buffers.to_slices()) else {
+        let Ok(gtfs) = gtfs_io::Gtfs::from_buffers(buffers.to_slices()) else {
             continue;
         };
         let Some(stops) = gtfs.stops.data else {
@@ -78,7 +78,7 @@ pub async fn gtfs_merge(input_path: &Path, _output_path: &Path) -> Result<()> {
 
     for stop in tree.locate_in_envelope(&b) {
         let source = &gtfs_sources[stop.source_i as usize];
-        let Ok(buffers) = indexed_gtfs::GtfsBuffers::from_path(
+        let Ok(buffers) = gtfs_io::GtfsBuffers::from_path(
             &source,
             &GtfsFilter {
                 stops: true,

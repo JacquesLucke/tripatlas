@@ -21,7 +21,7 @@ rayon = "1.10.0"
 csvelo = { path = "../libs/csvelo" }
 memmap2 = "0.9.5"
 num-format = "0.4.4"
-indexed_gtfs = { path = "../libs/indexed_gtfs" }
+gtfs_io = { path = "../libs/gtfs_io" }
 rand = "0.9.0"
 genawaiter = { version = "0.99.1", features = ["futures03"] }
 futures = "0.3.31"

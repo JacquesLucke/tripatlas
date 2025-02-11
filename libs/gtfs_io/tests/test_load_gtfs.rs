@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use indexed_gtfs::*;
+use gtfs_io::*;
 
 #[test]
 fn test_load_gtfs_dummy() {
