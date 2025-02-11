@@ -9,6 +9,7 @@ mod cli_serve_dev;
 mod coordinates;
 mod gtfs_sources;
 mod projection;
+mod routes;
 mod start_server;
 mod util;
 

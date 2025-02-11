@@ -6,50 +6,24 @@ use std::net::TcpListener;
 use crate::{coordinates::LatLon, projection::WebMercatorTile};
 
 pub struct State {
-    config: Config,
-    metrics: PrometheusMetrics,
+    pub config: Config,
+    pub metrics: PrometheusMetrics,
 }
 
-struct PrometheusMetrics {
-    registry: prometheus::Registry,
-    index_html_requests_total: prometheus::Counter,
-    assets_requests_total: prometheus::Counter,
-    assets_not_found_total: prometheus::Counter,
-    api_root_requests_total: prometheus::Counter,
-    metrics_requests_total: prometheus::Counter,
-    config_requests_total: prometheus::Counter,
-    experimental_requests_total: prometheus::Counter,
+pub struct PrometheusMetrics {
+    pub registry: prometheus::Registry,
+    pub index_html_requests_total: prometheus::Counter,
+    pub assets_requests_total: prometheus::Counter,
+    pub assets_not_found_total: prometheus::Counter,
+    pub api_root_requests_total: prometheus::Counter,
+    pub metrics_requests_total: prometheus::Counter,
+    pub config_requests_total: prometheus::Counter,
+    pub experimental_requests_total: prometheus::Counter,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Config {
-    allow_shutdown_from_frontend: bool,
-}
-
-static FRONTEND_FILES: include_dir::Dir =
-    include_dir::include_dir!("$CARGO_MANIFEST_DIR/frontend/dist");
-
-#[actix_web::get("/{filename:.*}")]
-async fn route_frontend(req: actix_web::HttpRequest, state: web::Data<State>) -> impl Responder {
-    let path = req.match_info().get("filename");
-    let path = path.unwrap_or("not_found.html");
-    let path = if path.is_empty() { "index.html" } else { path };
-
-    if let Some(file) = FRONTEND_FILES.get_file(path) {
-        if path == "index.html" {
-            state.metrics.index_html_requests_total.inc();
-        } else {
-            state.metrics.assets_requests_total.inc();
-        }
-
-        let mime_type = mime_guess::from_path(path).first_or_octet_stream();
-        HttpResponse::Ok()
-            .content_type(mime_type.to_string())
-            .body(file.contents())
-    } else {
-        state.metrics.assets_not_found_total.inc();
-        HttpResponse::NotFound().body("File not found")
-    }
+pub struct Config {
+    pub allow_shutdown_from_frontend: bool,
 }
 
 #[actix_web::get("/api")]
@@ -209,7 +183,7 @@ pub async fn start_server(
             .service(route_api_shutdown)
             .service(route_api_metrics)
             .service(route_api_tile_color)
-            .service(route_frontend)
+            .service(crate::routes::frontend::route_frontend)
     })
     .workers(1)
     .listen(listener)?;
