@@ -89,7 +89,7 @@ export class MapOverlay {
 
     const fetchColor = throttle(async () => {
       const apiUrl = getApiUrl(
-        `/some_hash_23423/${zoom}_${tileX}_${tileY}.bin`
+        `/some_hash_23424/${zoom}_${tileX}_${tileY}.bin`
       );
       const response = await fetch(apiUrl);
       const color = await response.text();

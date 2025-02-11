@@ -1,8 +1,9 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::net::TcpListener;
+
+use crate::{coordinates::LatLon, projection::WebMercatorTile};
 
 pub struct State {
     config: Config,
@@ -65,22 +66,23 @@ async fn route_api_config(state: web::Data<State>) -> impl Responder {
     })
 }
 
-#[actix_web::get("/api/some_hash_23423/{zoom}_{tile_x}_{tile_y}.bin")]
+#[actix_web::get("/api/some_hash_23424/{zoom}_{tile_x}_{tile_y}.bin")]
 async fn route_api_tile_color(
     state: web::Data<State>,
     path: web::Path<(u8, u32, u32)>,
 ) -> impl Responder {
     state.metrics.experimental_requests_total.inc();
     let (zoom, tile_x, tile_y) = path.into_inner();
-    let mut rng = rand_chacha::ChaChaRng::seed_from_u64(
-        (zoom as u64) * 45634541 + (tile_x as u64) * 1234567 + (tile_y as u64),
-    );
-    let color = format!(
-        "rgba({}, {}, {}, 0.2)",
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-        rng.random::<u8>(),
-    );
+    let tile = WebMercatorTile::new(zoom, tile_x, tile_y);
+    let tile_bounds = tile.to_bounds();
+
+    let my_pos = LatLon::new(52.637641, 13.205084);
+    let color = if tile_bounds.contains(my_pos) {
+        "rgba(255,0,0,0.2)"
+    } else {
+        "rgba(0,0,0,0.2)"
+    };
+
     HttpResponse::Ok()
         .insert_header(("Cache-Control", "public, max-age=31536000, immutable"))
         .body(color)

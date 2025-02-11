@@ -8,6 +8,7 @@ mod cli_serve;
 mod cli_serve_dev;
 mod coordinates;
 mod gtfs_sources;
+mod projection;
 mod start_server;
 mod util;
 

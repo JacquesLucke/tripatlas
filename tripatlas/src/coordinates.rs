@@ -9,6 +9,14 @@ pub struct LatLon {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct LatLonBounds {
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct XYZ {
     pub x: f32,
     pub y: f32,
@@ -62,6 +70,28 @@ impl XYZ {
 
         let d = dx * dx + dy * dy + dz * dz;
         d.sqrt()
+    }
+}
+
+impl LatLonBounds {
+    pub fn from_corners(corner1: LatLon, corner2: LatLon) -> Self {
+        let left = corner1.longitude.min(corner2.longitude);
+        let right = corner1.longitude.max(corner2.longitude);
+        let top = corner1.latitude.max(corner2.latitude);
+        let bottom = corner1.latitude.min(corner2.latitude);
+        Self {
+            left,
+            right,
+            top,
+            bottom,
+        }
+    }
+
+    pub fn contains(&self, pos: LatLon) -> bool {
+        self.left <= pos.longitude
+            && pos.longitude <= self.right
+            && self.top >= pos.latitude
+            && pos.latitude >= self.bottom
     }
 }
 
