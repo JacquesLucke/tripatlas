@@ -68,7 +68,7 @@ export class MapOverlay {
 
     let canvasTiles = getCanvasTiles(map, Math.floor(map.getZoom()), 0);
 
-    const radius = 0.5;
+    const radius = this.getStationRadiusByZoom(map.getZoom());
 
     ctx.clearRect(0, 0, mapSize.x, mapSize.y);
     ctx.lineWidth = 1;
@@ -83,9 +83,42 @@ export class MapOverlay {
         const p = crs
           .latLngToPoint(pos, map.getZoom())
           .subtract(map.getPixelBounds().getTopLeft());
-        const r = radius * station.num;
+        const r = radius * Math.sqrt(station.num);
         ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
       }
+    }
+  }
+
+  getStationRadiusByZoom(zoom: number) {
+    switch (Math.floor(zoom)) {
+      case 0:
+        return 0.0015;
+      case 1:
+        return 0.005;
+      case 2:
+        return 0.01;
+      case 3:
+        return 0.02;
+      case 4:
+        return 0.05;
+      case 5:
+        return 0.1;
+      case 6:
+        return 0.15;
+      case 7:
+        return 0.25;
+      case 8:
+        return 0.35;
+      case 9:
+        return 0.5;
+      case 10:
+        return 0.8;
+      case 11:
+        return 1.2;
+      case 12:
+        return 1.5;
+      default:
+        return 2.5;
     }
   }
 
@@ -131,6 +164,7 @@ function getCanvasTiles(map: L.Map, tileZoomLevel: number, paddingPx: number) {
   const mapTopLeftPx = mapPixelBounds.getTopLeft();
   const crs = map.options.crs!;
   const tileSizePx = 256;
+  const tilesNum = Math.pow(2, tileZoomLevel);
 
   const actualPaddingPx = paddingPx * Math.pow(2, tileZoomLevel - mapZoom);
 
@@ -164,8 +198,8 @@ function getCanvasTiles(map: L.Map, tileZoomLevel: number, paddingPx: number) {
         .subtract(mapTopLeftPx);
 
       canvasTiles.push({
-        tileX: tileX,
-        tileY: tileY,
+        tileX: mod(tileX, tilesNum),
+        tileY: mod(tileY, tilesNum),
         zoom: tileZoomLevel,
         latLngBounds: new L.LatLngBounds([tileMinLatLng, tileMaxLatLng]),
         left: tileMinCanvasPx.x,
@@ -177,4 +211,8 @@ function getCanvasTiles(map: L.Map, tileZoomLevel: number, paddingPx: number) {
   }
 
   return canvasTiles;
+}
+
+function mod(a: number, b: number) {
+  return ((a % b) + b) % b;
 }

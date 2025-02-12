@@ -1,7 +1,6 @@
 use actix_cors::Cors;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use gtfs_io::{Gtfs, GtfsFilter};
-use lazy_static::lazy_static;
+use actix_web::{web, App, HttpServer};
+use gtfs_io::GtfsFilter;
 use serde::{Deserialize, Serialize};
 use std::{
     net::TcpListener,
@@ -9,7 +8,7 @@ use std::{
     sync::{LazyLock, OnceLock},
 };
 
-use crate::{coordinates::LatLon, gtfs_dataset::GtfsDataset, projection::WebMercatorTile};
+use crate::gtfs_dataset::GtfsDataset;
 
 pub struct State {
     pub config: Config,
@@ -25,34 +24,13 @@ pub struct PrometheusMetrics {
     pub api_root_requests_total: prometheus::Counter,
     pub metrics_requests_total: prometheus::Counter,
     pub config_requests_total: prometheus::Counter,
-    pub experimental_requests_total: prometheus::Counter,
+    pub station_requests_total: prometheus::Counter,
+    pub _experimental_requests_total: prometheus::Counter,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub allow_shutdown_from_frontend: bool,
-}
-
-#[actix_web::get("/api/some_hash_23424/{zoom}_{tile_x}_{tile_y}.bin")]
-async fn route_api_tile_color(
-    state: web::Data<State>,
-    path: web::Path<(u8, u32, u32)>,
-) -> impl Responder {
-    state.metrics.experimental_requests_total.inc();
-    let (zoom, tile_x, tile_y) = path.into_inner();
-    let tile = WebMercatorTile::new(zoom, tile_x, tile_y);
-    let tile_bounds = tile.to_bounds();
-
-    let my_pos = LatLon::new(52.637641, 13.205084);
-    let color = if tile_bounds.contains(my_pos) {
-        "rgba(255,0,0,0.2)"
-    } else {
-        "rgba(0,0,0,0.2)"
-    };
-
-    HttpResponse::Ok()
-        .insert_header(("Cache-Control", "public, max-age=31536000, immutable"))
-        .body(color)
 }
 
 fn prepare_prometheus_metrics() -> PrometheusMetrics {
@@ -93,6 +71,14 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
             .namespace(namespace),
     )
     .unwrap();
+    let station_requests_total = prometheus::Counter::with_opts(
+        prometheus::Opts::new(
+            "stations_requests_total",
+            "Total number of stations requests",
+        )
+        .namespace(namespace),
+    )
+    .unwrap();
 
     let experimental_requests_total = prometheus::Counter::with_opts(
         prometheus::Opts::new(
@@ -110,6 +96,7 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         &api_root_requests_total,
         &metrics_requests_total,
         &config_requests_total,
+        &station_requests_total,
         &experimental_requests_total,
     ];
 
@@ -126,7 +113,8 @@ fn prepare_prometheus_metrics() -> PrometheusMetrics {
         api_root_requests_total,
         metrics_requests_total,
         config_requests_total,
-        experimental_requests_total,
+        station_requests_total,
+        _experimental_requests_total: experimental_requests_total,
     }
 }
 
@@ -161,7 +149,6 @@ pub async fn start_server(
             .service(crate::routes::api_basics::route_api_shutdown)
             .service(crate::routes::api_basics::route_api_metrics)
             .service(crate::routes::stations::route_api_stations)
-            .service(route_api_tile_color)
             .service(crate::routes::frontend::route_frontend)
     })
     .workers(1)

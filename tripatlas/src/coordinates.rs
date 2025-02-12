@@ -87,7 +87,7 @@ impl LatLonBounds {
         }
     }
 
-    pub fn contains(&self, pos: LatLon) -> bool {
+    pub fn _contains(&self, pos: LatLon) -> bool {
         self.left <= pos.longitude
             && pos.longitude <= self.right
             && self.top >= pos.latitude
