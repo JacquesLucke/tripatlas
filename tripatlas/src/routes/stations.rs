@@ -73,14 +73,8 @@ async fn route_api_stations(
         station_groups.push(station_group);
     }
 
-    let stations_num: u32 = station_groups.iter().map(|s| s.num).sum();
-
-    let Ok(result) = serde_json::to_string_pretty(&station_groups) else {
-        return HttpResponse::NotImplemented().finish();
-    };
-
     HttpResponse::Ok()
         .content_type("application/json")
         .insert_header(("Cache-Control", "public, max-age=31536000, immutable"))
-        .body(result)
+        .json(station_groups)
 }
