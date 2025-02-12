@@ -153,6 +153,7 @@ pub async fn start_server(
         App::new()
             .app_data(state.clone())
             .wrap(Cors::permissive())
+            .wrap(actix_web::middleware::Compress::default())
             .service(crate::routes::api_basics::route_api_root)
             .service(crate::routes::api_basics::route_api_config)
             .service(crate::routes::api_basics::route_api_shutdown)
