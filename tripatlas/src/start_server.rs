@@ -161,7 +161,6 @@ pub async fn start_server(
             .service(crate::routes::stations::route_api_stations)
             .service(crate::routes::frontend::route_frontend)
     })
-    .workers(1)
     .listen(listener)?;
     if let Some(on_start) = on_start {
         on_start();
