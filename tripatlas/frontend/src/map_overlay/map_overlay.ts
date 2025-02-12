@@ -11,11 +11,16 @@ const throttle = pThrottle({
   interval: 100,
 });
 
+interface StationInfo {
+  latitude: number;
+  longitude: number;
+}
+
 export class MapOverlay {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   map: L.Map;
-  colorByTile: Map<string, string | null> = new Map();
+  stationsByTile: Map<string, StationInfo[]> = new Map();
   renderScheduled: boolean = false;
 
   constructor(map: L.Map) {
@@ -55,49 +60,53 @@ export class MapOverlay {
     const ctx = this.ctx;
     const map = this.map;
     const mapSize = map.getSize();
+    const crs = map.options.crs!;
 
     this.canvas.width = mapSize.x;
     this.canvas.height = mapSize.y;
 
-    let canvasTiles = getCanvasTiles(map, Math.floor(map.getZoom()), -100);
+    let canvasTiles = getCanvasTiles(map, Math.floor(map.getZoom()), 0);
+
+    const radius = 5;
 
     ctx.clearRect(0, 0, mapSize.x, mapSize.y);
     ctx.lineWidth = 1;
     for (const canvasTile of canvasTiles) {
-      ctx.fillStyle = this.getTileColor(
+      const stations = this.getTileStations(
         canvasTile.tileX,
         canvasTile.tileY,
         canvasTile.zoom
       );
-      ctx.beginPath();
-      ctx.fillRect(
-        canvasTile.left,
-        canvasTile.top,
-        canvasTile.right - canvasTile.left,
-        canvasTile.bottom - canvasTile.top
-      );
+      for (const station of stations) {
+        const pos = new L.LatLng(station.latitude, station.longitude);
+        const p = crs
+          .latLngToPoint(pos, map.getZoom())
+          .subtract(map.getPixelBounds().getTopLeft());
+        ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
+      }
     }
   }
 
-  getTileColor(tileX: number, tileY: number, zoom: number) {
-    const fallbackColor = "rgba(0,0,0,0.2)";
-    const tileKey = `${zoom}/${tileX}/${tileY}`;
-    if (this.colorByTile.has(tileKey)) {
-      return this.colorByTile.get(tileKey)!;
+  getTileStations(tileX: number, tileY: number, zoom: number) {
+    const fallback: StationInfo[] = [];
+    const tileKey = `${zoom}_${tileX}_${tileY}`;
+    if (this.stationsByTile.has(tileKey)) {
+      return this.stationsByTile.get(tileKey)!;
     }
-    this.colorByTile.set(tileKey, fallbackColor);
+    this.stationsByTile.set(tileKey, fallback);
 
-    const fetchColor = throttle(async () => {
+    const fetchStations = throttle(async () => {
       const apiUrl = getApiUrl(
-        `/some_hash_23424/${zoom}_${tileX}_${tileY}.bin`
+        `/some_hash_23434/${zoom}_${tileX}_${tileY}.json`
       );
       const response = await fetch(apiUrl);
-      const color = await response.text();
-      this.colorByTile.set(tileKey, color);
+      const stations = await response.json();
+      this.stationsByTile.set(tileKey, stations);
       this.render();
     });
-    fetchColor();
-    return fallbackColor;
+
+    fetchStations();
+    return fallback;
   }
 }
 

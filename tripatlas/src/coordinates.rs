@@ -2,7 +2,7 @@
 /// on the 3D coordinates are somewhat accurate.
 const APPROXIMATE_EARTH_RADIUS_IN_KM: f32 = 6378.0f32;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct LatLon {
     pub latitude: f32,
     pub longitude: f32,

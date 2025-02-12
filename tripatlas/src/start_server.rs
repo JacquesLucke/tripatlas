@@ -1,13 +1,16 @@
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use gtfs_io::{Gtfs, GtfsFilter};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::net::TcpListener;
+use std::{net::TcpListener, path::Path, sync::LazyLock};
 
-use crate::{coordinates::LatLon, projection::WebMercatorTile};
+use crate::{coordinates::LatLon, gtfs_dataset::GtfsDataset, projection::WebMercatorTile};
 
 pub struct State {
     pub config: Config,
     pub metrics: PrometheusMetrics,
+    pub dataset: GtfsDataset,
 }
 
 pub struct PrometheusMetrics {
@@ -128,12 +131,20 @@ pub async fn start_server(
     on_start: Option<Box<dyn FnOnce() + Send>>,
     allow_shutdown_from_frontend: bool,
 ) -> std::io::Result<()> {
+    static GTFS_PATH: &str = "/home/jacques/Documents/gtfs_germany";
+    static GTFS_BUFFERS: LazyLock<gtfs_io::GtfsBuffers> = LazyLock::new(|| {
+        gtfs_io::GtfsBuffers::from_path(Path::new(GTFS_PATH), &GtfsFilter::all()).unwrap()
+    });
+
     // This state is shared across all worker threads.
     let state = web::Data::new(State {
         config: Config {
             allow_shutdown_from_frontend,
         },
         metrics: prepare_prometheus_metrics(),
+        dataset: GtfsDataset {
+            raw: gtfs_io::Gtfs::from_buffers(GTFS_BUFFERS.to_slices()).unwrap(),
+        },
     });
 
     let server = HttpServer::new(move || {
@@ -144,6 +155,7 @@ pub async fn start_server(
             .service(crate::routes::api_basics::route_api_config)
             .service(crate::routes::api_basics::route_api_shutdown)
             .service(crate::routes::api_basics::route_api_metrics)
+            .service(crate::routes::stations::route_api_stations)
             .service(route_api_tile_color)
             .service(crate::routes::frontend::route_frontend)
     })

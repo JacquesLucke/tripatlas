@@ -2918,6 +2918,7 @@ dependencies = [
  "gtfs_io",
  "include_dir",
  "indoc",
+ "lazy_static",
  "memmap2",
  "mime_guess",
  "num-format",

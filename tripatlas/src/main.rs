@@ -7,6 +7,7 @@ mod cli_mobility_database;
 mod cli_serve;
 mod cli_serve_dev;
 mod coordinates;
+mod gtfs_dataset;
 mod gtfs_sources;
 mod projection;
 mod routes;
