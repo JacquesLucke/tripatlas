@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use tokio::process::Command;
@@ -10,6 +10,7 @@ pub struct ServeDevParams {
     pub frontend_port: u16,
     pub api_host: String,
     pub api_port: Option<u16>,
+    pub gtfs_datasets: Vec<PathBuf>,
 }
 
 pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
@@ -49,6 +50,6 @@ pub async fn serve_dev(params: &ServeDevParams) -> Result<()> {
         ));
     }
 
-    start_server::start_server(api_listener, None, false).await?;
+    start_server::start_server(api_listener, None, false, params.gtfs_datasets.clone()).await?;
     Ok(())
 }

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::Result;
 
@@ -10,6 +10,7 @@ pub struct ServeParams {
     pub on_start: Option<Box<dyn FnOnce() + Send>>,
     pub on_port_in_use: Option<Box<dyn FnOnce() + Send>>,
     pub allow_shutdown_from_frontend: bool,
+    pub gtfs_datasets: Vec<PathBuf>,
 }
 
 pub async fn serve(params: ServeParams) -> Result<()> {
@@ -29,6 +30,7 @@ pub async fn serve(params: ServeParams) -> Result<()> {
         listener,
         params.on_start,
         params.allow_shutdown_from_frontend,
+        params.gtfs_datasets.clone(),
     )
     .await?;
     Ok(())

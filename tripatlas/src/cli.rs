@@ -7,9 +7,11 @@ use crate::cli_gtfs_merge;
 use crate::cli_gtfs_stats;
 use crate::cli_serve;
 use crate::cli_serve_dev;
+use crate::gtfs_sources::get_gtfs_sources;
 
 const DEFAULT_FRONTEND_HOST: &str = "localhost";
 const DEFAULT_FRONTEND_PORT: u16 = 7654;
+const DEFAULT_GTFS_DATASETS_PATH: &str = "gtfs_datasets";
 
 #[derive(Parser, Debug)]
 #[command(name = "trip-atlas")]
@@ -26,6 +28,8 @@ enum CLICommand {
         host: String,
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
+        #[arg(long, default_value_t = DEFAULT_GTFS_DATASETS_PATH.to_string())]
+        gtfs_datasets: String,
     },
     /// Start a development server with live reloading for the frontend.
     Dev {
@@ -33,6 +37,8 @@ enum CLICommand {
         host: String,
         #[arg(long, default_value_t = DEFAULT_FRONTEND_PORT)]
         port: u16,
+        #[arg(long, default_value_t = DEFAULT_GTFS_DATASETS_PATH.to_string())]
+        gtfs_datasets: String,
     },
     /// Analyse one or more GTFS datasets.
     GtfsStats {
@@ -82,25 +88,36 @@ pub async fn handle_command_line_arguments() -> Result<()> {
                     }
                 })),
                 allow_shutdown_from_frontend: true,
+                gtfs_datasets: vec![],
             })
             .await?
         }
-        Some(CLICommand::Serve { host, port }) => {
+        Some(CLICommand::Serve {
+            host,
+            port,
+            gtfs_datasets,
+        }) => {
             cli_serve::serve(cli_serve::ServeParams {
                 host: host,
                 port: port,
                 on_start: None,
                 on_port_in_use: None,
                 allow_shutdown_from_frontend: false,
+                gtfs_datasets: get_gtfs_sources(Path::new(&gtfs_datasets), true),
             })
             .await?
         }
-        Some(CLICommand::Dev { host, port }) => {
+        Some(CLICommand::Dev {
+            host,
+            port,
+            gtfs_datasets,
+        }) => {
             cli_serve_dev::serve_dev(&cli_serve_dev::ServeDevParams {
                 frontend_host: host.clone(),
                 frontend_port: port,
                 api_host: host,
                 api_port: None,
+                gtfs_datasets: get_gtfs_sources(Path::new(&gtfs_datasets), true),
             })
             .await?
         }

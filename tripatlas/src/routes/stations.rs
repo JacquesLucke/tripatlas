@@ -22,7 +22,11 @@ async fn route_api_stations(
     let tile = WebMercatorTile::new(zoom, tile_x, tile_y);
     let tile_bounds = tile.to_bounds();
 
-    let stops_tree = state.dataset.get_stops_tree();
+    if state.datasets.is_empty() {
+        return HttpResponse::NotFound().finish();
+    }
+
+    let stops_tree = state.datasets[0].get_stops_tree();
     let all_found = stops_tree.locate_in_envelope(&AABB::from_corners(
         [tile_bounds.left, tile_bounds.top],
         [tile_bounds.right, tile_bounds.bottom],

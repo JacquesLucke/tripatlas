@@ -2,18 +2,14 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use gtfs_io::GtfsFilter;
 use serde::{Deserialize, Serialize};
-use std::{
-    net::TcpListener,
-    path::Path,
-    sync::{LazyLock, OnceLock},
-};
+use std::{net::TcpListener, path::PathBuf, sync::OnceLock};
 
 use crate::gtfs_dataset::GtfsDataset;
 
 pub struct State {
     pub config: Config,
     pub metrics: PrometheusMetrics,
-    pub dataset: GtfsDataset,
+    pub datasets: Vec<GtfsDataset>,
 }
 
 pub struct PrometheusMetrics {
@@ -122,11 +118,27 @@ pub async fn start_server(
     listener: TcpListener,
     on_start: Option<Box<dyn FnOnce() + Send>>,
     allow_shutdown_from_frontend: bool,
+    gtfs_datasets: Vec<PathBuf>,
 ) -> std::io::Result<()> {
-    static GTFS_PATH: &str = "/home/jacques/Documents/gtfs_germany";
-    static GTFS_BUFFERS: LazyLock<gtfs_io::GtfsBuffers> = LazyLock::new(|| {
-        gtfs_io::GtfsBuffers::from_path(Path::new(GTFS_PATH), &GtfsFilter::all()).unwrap()
+    for path in &gtfs_datasets {
+        println!("Loading GTFS from {:?}", path);
+    }
+
+    static CELL: OnceLock<Vec<gtfs_io::GtfsBuffers>> = OnceLock::new();
+    let buffers = CELL.get_or_init(|| {
+        gtfs_datasets
+            .iter()
+            .map(|p| gtfs_io::GtfsBuffers::from_path(&p, &GtfsFilter::all()))
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
     });
+    let datasets = buffers
+        .iter()
+        .map(|b| GtfsDataset {
+            raw: gtfs_io::Gtfs::from_buffers(b.to_slices()).unwrap(),
+            stops_tree: OnceLock::new(),
+        })
+        .collect::<Vec<_>>();
 
     // This state is shared across all worker threads.
     let state = web::Data::new(State {
@@ -134,10 +146,7 @@ pub async fn start_server(
             allow_shutdown_from_frontend,
         },
         metrics: prepare_prometheus_metrics(),
-        dataset: GtfsDataset {
-            raw: gtfs_io::Gtfs::from_buffers(GTFS_BUFFERS.to_slices()).unwrap(),
-            stops_tree: OnceLock::new(),
-        },
+        datasets,
     });
 
     let server = HttpServer::new(move || {

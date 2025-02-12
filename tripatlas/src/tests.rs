@@ -30,9 +30,14 @@ async fn setup_with_params(params: SetupParams) -> TestContext {
     let url = format!("http://127.0.0.1:{}", port);
 
     let server = tokio::spawn(async move {
-        crate::start_server::start_server(listener, None, params.allow_shutdown_from_frontend)
-            .await
-            .expect("Failed to start server");
+        crate::start_server::start_server(
+            listener,
+            None,
+            params.allow_shutdown_from_frontend,
+            vec![],
+        )
+        .await
+        .expect("Failed to start server");
     });
 
     // Wait for server to start.
