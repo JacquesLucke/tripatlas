@@ -11,16 +11,17 @@ const throttle = pThrottle({
   interval: 100,
 });
 
-interface StationInfo {
-  latitude: number;
-  longitude: number;
+interface StationGroup {
+  lat: number;
+  lon: number;
+  num: number;
 }
 
 export class MapOverlay {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   map: L.Map;
-  stationsByTile: Map<string, StationInfo[]> = new Map();
+  stationsByTile: Map<string, StationGroup[]> = new Map();
   renderScheduled: boolean = false;
 
   constructor(map: L.Map) {
@@ -67,7 +68,7 @@ export class MapOverlay {
 
     let canvasTiles = getCanvasTiles(map, Math.floor(map.getZoom()), 0);
 
-    const radius = 5;
+    const radius = 0.5;
 
     ctx.clearRect(0, 0, mapSize.x, mapSize.y);
     ctx.lineWidth = 1;
@@ -78,17 +79,18 @@ export class MapOverlay {
         canvasTile.zoom
       );
       for (const station of stations) {
-        const pos = new L.LatLng(station.latitude, station.longitude);
+        const pos = new L.LatLng(station.lat, station.lon);
         const p = crs
           .latLngToPoint(pos, map.getZoom())
           .subtract(map.getPixelBounds().getTopLeft());
-        ctx.fillRect(p.x - radius, p.y - radius, radius * 2, radius * 2);
+        const r = radius * station.num;
+        ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
       }
     }
   }
 
   getTileStations(tileX: number, tileY: number, zoom: number) {
-    const fallback: StationInfo[] = [];
+    const fallback: StationGroup[] = [];
     const tileKey = `${zoom}_${tileX}_${tileY}`;
     if (this.stationsByTile.has(tileKey)) {
       return this.stationsByTile.get(tileKey)!;

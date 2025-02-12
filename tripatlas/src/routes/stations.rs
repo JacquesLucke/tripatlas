@@ -1,6 +1,16 @@
+use std::collections::HashSet;
+
 use actix_web::{web, HttpResponse, Responder};
+use rstar::AABB;
 
 use crate::{coordinates::LatLon, projection::WebMercatorTile, start_server::State};
+
+#[derive(serde::Serialize)]
+struct StationGroup {
+    lat: f32,
+    lon: f32,
+    num: u32,
+}
 
 #[actix_web::get("/api/some_hash_23434/{zoom}_{tile_x}_{tile_y}.json")]
 async fn route_api_stations(
@@ -14,25 +24,20 @@ async fn route_api_stations(
 
     let start = std::time::Instant::now();
 
-    let mut locations = vec![];
-    let Some(stops) = &state.dataset.raw.stops.data else {
-        return HttpResponse::NotImplemented().finish();
-    };
-    let (Some(stop_lats), Some(stop_lons)) = (&stops.stop_lat, &stops.stop_lon) else {
-        return HttpResponse::NotImplemented().finish();
-    };
+    let stops_tree = state.dataset.get_stops_tree();
+    let found = stops_tree.locate_in_envelope(&AABB::from_corners(
+        [tile_bounds.left, tile_bounds.top],
+        [tile_bounds.right, tile_bounds.bottom],
+    ));
+    let locations = found
+        .map(|stop| StationGroup {
+            lat: stop.position.latitude,
+            lon: stop.position.longitude,
+            num: 1,
+        })
+        .collect::<Vec<_>>();
 
-    for (lat, lon) in stop_lats.iter().zip(stop_lons.iter()) {
-        let (Some(lat), Some(lon)) = (lat.0, lon.0) else {
-            continue;
-        };
-        let position = LatLon::new(lat, lon);
-        if tile_bounds.contains(position) {
-            locations.push(position);
-        }
-    }
-
-    println!("Took {:?}", start.elapsed());
+    println!("Took {:?}, {:?}", start.elapsed(), locations.len());
 
     let Ok(result) = serde_json::to_string_pretty(&locations) else {
         return HttpResponse::NotImplemented().finish();

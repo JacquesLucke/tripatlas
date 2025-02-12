@@ -3,7 +3,11 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use gtfs_io::{Gtfs, GtfsFilter};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::{net::TcpListener, path::Path, sync::LazyLock};
+use std::{
+    net::TcpListener,
+    path::Path,
+    sync::{LazyLock, OnceLock},
+};
 
 use crate::{coordinates::LatLon, gtfs_dataset::GtfsDataset, projection::WebMercatorTile};
 
@@ -144,6 +148,7 @@ pub async fn start_server(
         metrics: prepare_prometheus_metrics(),
         dataset: GtfsDataset {
             raw: gtfs_io::Gtfs::from_buffers(GTFS_BUFFERS.to_slices()).unwrap(),
+            stops_tree: OnceLock::new(),
         },
     });
 
